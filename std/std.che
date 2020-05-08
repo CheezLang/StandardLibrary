@@ -1,0 +1,43 @@
+// io
+io                 :: import std.io
+file               :: import std.io.file
+stdio              :: import std.io.stdio
+
+// mem
+allocator          :: import std.mem.allocator
+arena_allocator    :: import std.mem.arena_allocator
+counting_allocator :: import std.mem.counting_allocator
+stack_allocator    :: import std.mem.stack_allocator
+std_heap_allocator :: import std.mem.std_heap_allocator
+
+// other
+alloca             :: import std.alloca
+array              :: import std.array
+box                :: import std.box
+c                  :: import std.c
+fiber              :: import std.fiber
+hash_table         :: import std.hash_table
+hash               :: import std.hash
+heap               :: import std.heap
+iterator           :: import std.iterator
+math               :: import std.math
+printable          :: import std.printable
+random             :: import std.random
+rc                 :: import std.rc
+ring_queue         :: import std.ring_queue
+stack              :: import std.stack
+string             :: import std.string
+thread             :: import std.thread
+time               :: import std.time
+util               :: import std.util
+
+// random
+mt                 :: import std.random.mt
+
+// os
+if const @is_os("windows") {
+    windows        :: import std.os.windows
+}
+if const @is_os("linux") {
+    linux          :: import std.os.linux
+}
