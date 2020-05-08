@@ -98,7 +98,6 @@ GetConsoleMode   :: (hConsoleHandle: HANDLE, lpMode: ^DWORD) -> BOOL #stdcall;
 SetConsoleTextAttribute :: (hConsoleOutput: HANDLE, wAttributes: WORD) -> BOOL #stdcall;
 
 // window stuff
-GetModuleHandleA   :: (lpModuleName: c_string) -> HMODULE #stdcall;
 SetWindowTextA     :: (hWnd: HWND, lpString: c_string) -> BOOL #stdcall;
 SetWindowTextW     :: (hWnd: HWND, lpString: ^u16) -> BOOL #stdcall;
 DefWindowProcA     :: (hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> LRESULT #stdcall;
@@ -131,6 +130,7 @@ CreateFiber          :: (dwStackSize: int, lpStartAddress: fn(^void) #stdcall, l
 DeleteFiber          :: (fiber: ^void) #stdcall;
 
 // process
+GetModuleHandleA   :: (lpModuleName: c_string) -> HMODULE #stdcall;
 CreateProcessA :: (
     lpApplicationName: c_string,
     lpCommandLine: c_string,
@@ -180,3 +180,4 @@ _InterlockedExchange64                  :: (dest: ^LONG64, value: LONG64) -> LON
 
 // somehow not linking
 GetCurrentDirectoryW :: (nBufferLength: DWORD, lpBuffer: ^u16) -> DWORD #stdcall;
+GetModuleFileNameW   :: (hModule: HMODULE, lpFilename: ^u16, nSize: DWORD) -> DWORD #stdcall;

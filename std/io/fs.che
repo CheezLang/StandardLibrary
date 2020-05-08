@@ -219,6 +219,12 @@ impl Path {
         }
         return result
     }
+
+    get_current_executable_path :: () -> Result[String, ()] {
+        buff := @dup(0u16, MAX_PATH)
+        size := cast(int) GetModuleFileNameW(null, buff.data, cast buff.length)
+        return String.from_utf16(buff[..size])
+    }
 }
 
 #file_scope
