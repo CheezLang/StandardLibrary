@@ -3,9 +3,12 @@ use import std.printable
 C   :: import std.c
 fmt :: import std.fmt
 
-use import std.os.windows
-use import std.os.windows_functions
-use import std.os.windows_constants
+
+if const @is_os("windows") {
+    use import std.os.windows
+    use import std.os.windows_functions
+    use import std.os.windows_constants
+}
 
 #export_scope
 formatln :: (format: ^any, args: []^any = []) {
@@ -52,42 +55,48 @@ ConsoleColor :: enum #copy #flags {
 }
 
 set_console_color :: (foreground: ConsoleColor, background: ConsoleColor) {
-    fg := u16(foreground)
-    bg := u16(background)
-    attributes := 0u16
+    if const @is_os("windows") {
+        fg := u16(foreground)
+        bg := u16(background)
+        attributes := 0u16
 
-    if @bin_and(fg, u16(ConsoleColor.Red))    != 0 { attributes = @bin_or(attributes, FOREGROUND_RED) }
-    if @bin_and(fg, u16(ConsoleColor.Green))  != 0 { attributes = @bin_or(attributes, FOREGROUND_GREEN) }
-    if @bin_and(fg, u16(ConsoleColor.Blue))   != 0 { attributes = @bin_or(attributes, FOREGROUND_BLUE) }
-    if @bin_and(fg, u16(ConsoleColor.Bright)) != 0 { attributes = @bin_or(attributes, FOREGROUND_INTENSITY) }
+        if @bin_and(fg, u16(ConsoleColor.Red))    != 0 { attributes = @bin_or(attributes, FOREGROUND_RED) }
+        if @bin_and(fg, u16(ConsoleColor.Green))  != 0 { attributes = @bin_or(attributes, FOREGROUND_GREEN) }
+        if @bin_and(fg, u16(ConsoleColor.Blue))   != 0 { attributes = @bin_or(attributes, FOREGROUND_BLUE) }
+        if @bin_and(fg, u16(ConsoleColor.Bright)) != 0 { attributes = @bin_or(attributes, FOREGROUND_INTENSITY) }
 
-    if @bin_and(bg, u16(ConsoleColor.Red))    != 0 { attributes = @bin_or(attributes, BACKGROUND_RED) }
-    if @bin_and(bg, u16(ConsoleColor.Green))  != 0 { attributes = @bin_or(attributes, BACKGROUND_GREEN) }
-    if @bin_and(bg, u16(ConsoleColor.Blue))   != 0 { attributes = @bin_or(attributes, BACKGROUND_BLUE) }
-    if @bin_and(bg, u16(ConsoleColor.Bright)) != 0 { attributes = @bin_or(attributes, BACKGROUND_INTENSITY) }
+        if @bin_and(bg, u16(ConsoleColor.Red))    != 0 { attributes = @bin_or(attributes, BACKGROUND_RED) }
+        if @bin_and(bg, u16(ConsoleColor.Green))  != 0 { attributes = @bin_or(attributes, BACKGROUND_GREEN) }
+        if @bin_and(bg, u16(ConsoleColor.Blue))   != 0 { attributes = @bin_or(attributes, BACKGROUND_BLUE) }
+        if @bin_and(bg, u16(ConsoleColor.Bright)) != 0 { attributes = @bin_or(attributes, BACKGROUND_INTENSITY) }
 
-    SetConsoleTextAttribute(__std_out_handle, attributes)
+        SetConsoleTextAttribute(__std_out_handle, attributes)
+    }
 }
 
 #file_scope
 
 print_string :: (s: &String) {
-    mode := 0u32
-    if GetConsoleMode(__std_out_handle, ^mode) == 0 {
-        // no console handle, use WriteFileW
-        bytesWritten := 0u32
+    if const @is_os("windows") {
+        mode := 0u32
+        if GetConsoleMode(__std_out_handle, ^mode) == 0 {
+            // no console handle, use WriteFileW
+            bytesWritten := 0u32
 
-        WriteFile(__std_out_handle, cast s.get_raw(), cast s.get_length(), ^bytesWritten, null)
-    } else {
-        match s.slice().to_utf16() {
-            Ok($str) -> {
-                bytesWritten := 0u32
-                WriteConsoleW(__std_out_handle, cast str.get_raw(), cast str.get_length(), ^bytesWritten, null)
-            }
-            Err -> {
-                @assert(false, "print_string failed")
+            WriteFile(__std_out_handle, cast s.get_raw(), cast s.get_length(), ^bytesWritten, null)
+        } else {
+            match s.slice().to_utf16() {
+                Ok($str) -> {
+                    bytesWritten := 0u32
+                    WriteConsoleW(__std_out_handle, cast str.get_raw(), cast str.get_length(), ^bytesWritten, null)
+                }
+                Err -> {
+                    @assert(false, "print_string failed")
+                }
             }
         }
     }
-
+    if const @is_os("linux") {
+        C.printf("%.*s", i32(s.get_length()), s.get_raw())
+    }
 }

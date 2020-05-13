@@ -12,6 +12,7 @@ use import std.mem.std_heap_allocator
 import std.alloca
 
 if const @is_os("windows") {
+    use import std.os.windows
     use import std.os.windows_functions
     use import std.os.windows_constants
 }
@@ -64,14 +65,19 @@ impl String {
     }
 
     from_utf16 :: (str: []u16) -> Result[String, ()] {
-        required_size := WideCharToMultiByte(CP_UTF8, 0, str.data, cast str.length, null, 0, null, null)
-        result := String.empty()
-        result.resize(required_size)
-        bytes_written := WideCharToMultiByte(CP_UTF8, 0, str.data, cast str.length, result.get_raw(), required_size, null, null)
-        if bytes_written == 0 {
-            return Err(())
+        if const @is_os("windows") {
+            required_size := WideCharToMultiByte(CP_UTF8, 0, str.data, cast str.length, null, 0, null, null)
+            result := String.empty()
+            result.resize(required_size)
+            bytes_written := WideCharToMultiByte(CP_UTF8, 0, str.data, cast str.length, result.get_raw(), required_size, null, null)
+            if bytes_written == 0 {
+                return Err(())
+            }
+            return Ok(result)
+        } else {
+            @assert(false)
+            return Err()
         }
-        return Ok(result)
     }
 
     get_capacity :: (&Self) -> int {
@@ -653,16 +659,21 @@ impl string {
     }
 
     to_utf16 :: (Self) -> Result[Array[u16], ()] {
-        required_size := MultiByteToWideChar(CP_UTF8, 0, self.bytes.data, cast self.bytes.length, null, 0)
-        wide_char_str := Array[u16].create(cast required_size + 1)
-        wide_char_str.resize(required_size)
-        *wide_char_str.access_unchecked(required_size) = 0
-        bytes_written := MultiByteToWideChar(CP_UTF8, 0, self.bytes.data, cast self.bytes.length, wide_char_str.get_raw(), required_size)
-        if bytes_written < required_size {
+        if const @is_os("windows") {
+            required_size := MultiByteToWideChar(CP_UTF8, 0, self.bytes.data, cast self.bytes.length, null, 0)
+            wide_char_str := Array[u16].create(cast required_size + 1)
+            wide_char_str.resize(required_size)
+            *wide_char_str.access_unchecked(required_size) = 0
+            bytes_written := MultiByteToWideChar(CP_UTF8, 0, self.bytes.data, cast self.bytes.length, wide_char_str.get_raw(), required_size)
+            if bytes_written < required_size {
+                @assert(false)
+                return Err(())
+            }
+            return Ok(wide_char_str)
+        } else {
             @assert(false)
-            return Err(())
+            return Err()
         }
-        return Ok(wide_char_str)
     }
 }
 

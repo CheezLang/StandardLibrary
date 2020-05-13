@@ -1,8 +1,10 @@
 if const @static_assert(@is_os("linux"), "linux.che can only be loaded on linux") {}
 
+#export_scope
+
 timeval :: struct {
-    tv_sec  : int // seconds
-    tv_usec : int // and microseconds
+    tv_sec  : int = default // seconds
+    tv_usec : int = default // and microseconds
 }
 
 gettimeofday :: (tv: ^timeval, tz: ^void) -> i32;

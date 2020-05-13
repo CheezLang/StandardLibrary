@@ -3,7 +3,7 @@ if const @is_os("windows") {
     use import std.os.windows_functions
 }
 if const @is_os("linux") {
-    linux :: import std.os.linux
+    use import std.os.linux
 }
 
 #export_scope
