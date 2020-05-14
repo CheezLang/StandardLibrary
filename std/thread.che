@@ -76,8 +76,8 @@ impl Thread {
                 return 0
             }
 
-            thread_data.handle := CreateThread(null, 0, thread_func, cast thread_data, 0, null)
-            thread_data.id = cast GetThreadId(handle)
+            thread_data.handle = CreateThread(null, 0, thread_func, cast thread_data, 0, null)
+            thread_data.id = cast GetThreadId(thread_data.handle)
             @assert(thread_data.handle != null)
         }
         if const @is_os("linux") {
@@ -117,8 +117,8 @@ impl Thread {
                 return 0
             }
 
-            thread_data.handle := CreateThread(null, 0, thread_func, cast thread_data, 0, null)
-            thread_data.id = cast GetThreadId(handle)
+            thread_data.handle = CreateThread(null, 0, thread_func, cast thread_data, 0, null)
+            thread_data.id = cast GetThreadId(thread_data.handle)
             @assert(thread_data.handle != null)
         }
         if const @is_os("linux") {
@@ -327,7 +327,6 @@ impl ThreadPool {
 
         for 0..num_threads {
             t := Thread.create(cast(Fn(^ThreadPoolData)) worker, data)
-            t.start()
             data.threads.add(t)
         }
 
