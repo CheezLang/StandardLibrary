@@ -9,6 +9,14 @@ if const @is_os("windows") {
     use import std.os.windows_constants
     use import std.os.windows_types
     use import std.os.windows_macros
+
+    ThreadHandle :: HANDLE
+}
+if const @is_os("linux") {
+    use import std.os.linux
+    use import std.os.posix
+
+    ThreadHandle :: pthread_t
 }
 
 C :: import std.c
@@ -23,44 +31,70 @@ Thread :: struct {
 }
 
 ThreadData :: struct {
-    handle  : HANDLE
+    handle  : ThreadHandle
     user    : ^void
     func    : Fn(^void)
-    id      : int
+    id      : u64
 }
 
 impl Thread {
     current :: () -> ^ThreadData {
         if current_thread_data == null {
             current_thread_data = alloc(ThreadData)
-            *current_thread_data = ThreadData(
-                handle  = GetCurrentThread()
-                user    = null
-                func    = null
-                id      = cast GetCurrentThreadId()
-            )
+
+            if const @is_os("windows") {
+                *current_thread_data = ThreadData(
+                    handle  = GetCurrentThread()
+                    user    = null
+                    func    = null
+                    id      = cast GetCurrentThreadId()
+                )
+            }
+            if const @is_os("linux") {
+                id := pthread_self()
+                *current_thread_data = ThreadData(
+                    handle  = id
+                    user    = null
+                    func    = null
+                    id      = cast id
+                )
+            }
         }
         return current_thread_data
     }
 
     create :: (func: Fn(^$T), user_data: ^$T) -> Thread {
-        thread_func :: (data: ^void) -> u32 #stdcall {
-            thread_data := @cast(^ThreadData, data)
-            current_thread_data = thread_data
-            thread_data.func(thread_data.user)
-            return 0
+        thread_data := alloc(ThreadData)
+        thread_data.func = @cast(Fn(^void), func)
+        thread_data.user = @cast(^void, user_data)
+
+        if const @is_os("windows") {
+            thread_func :: (data: ^void) -> u32 #stdcall {
+                thread_data := @cast(^ThreadData, data)
+                current_thread_data = thread_data
+                thread_data.func(thread_data.user)
+                return 0
+            }
+
+            thread_data.handle := CreateThread(null, 0, thread_func, cast thread_data, 0, null)
+            thread_data.id = cast GetThreadId(handle)
+            @assert(thread_data.handle != null)
+        }
+        if const @is_os("linux") {
+            thread_func :: (data: ^void) -> ^void {
+                thread_data := @cast(^ThreadData, data)
+                current_thread_data = thread_data
+                thread_data.func(thread_data.user)
+                return null
+            }
+            {
+                attr : pthread_attr_t = default
+                result := pthread_create(^thread_data.handle, null, thread_func, cast thread_data)
+                thread_data.id = cast thread_data.handle
+            }
         }
 
-        td := alloc(ThreadData)
-        handle := CreateThread(null, 0, thread_func, cast td, CREATE_SUSPENDED, null)
-        @assert(handle != null)
-
-        td.handle   = handle
-        td.id       = cast GetThreadId(handle)
-        td.func     = @cast(Fn(^void), func)
-        td.user     = @cast(^void, user_data)
-
-        return Thread(td)
+        return Thread(thread_data)
     }
 
     new :: (func: Fn()) -> Thread {
@@ -68,42 +102,68 @@ impl Thread {
     }
 
     create_without_data :: (func: Fn()) -> Thread {
-        thread_func :: (data: ^void) -> u32 #stdcall {
-            thread_data := @cast(^ThreadData, data)
-            current_thread_data = thread_data
+        // @todo: handle memory leak when thread creation fails
+        thread_data := alloc(ThreadData)
+        thread_data.func = @cast(Fn(^void), func)
+        thread_data.user = null
 
-            func := @cast(Fn(), thread_data.func)
-            func()
-            return 0
+        if const @is_os("windows") {
+            thread_func :: (data: ^void) -> u32 #stdcall {
+                thread_data := @cast(^ThreadData, data)
+                current_thread_data = thread_data
+
+                func := @cast(Fn(), thread_data.func)
+                func()
+                return 0
+            }
+
+            thread_data.handle := CreateThread(null, 0, thread_func, cast thread_data, 0, null)
+            thread_data.id = cast GetThreadId(handle)
+            @assert(thread_data.handle != null)
+        }
+        if const @is_os("linux") {
+            thread_func :: (data: ^void) -> ^void {
+                thread_data := @cast(^ThreadData, data)
+                current_thread_data = thread_data
+
+                func := @cast(Fn(), thread_data.func)
+                func()
+                return null
+            }
+            {
+                attr : pthread_attr_t = default
+                result := pthread_create(^thread_data.handle, null, thread_func, cast thread_data)
+                thread_data.id = cast thread_data.handle
+            }
         }
 
-        td := alloc(ThreadData)
-        handle := CreateThread(null, 0, thread_func, cast td, CREATE_SUSPENDED, null)
-        @assert(handle != null)
-
-        td.handle   = handle
-        td.id       = cast GetThreadId(handle)
-        td.func     = @cast(Fn(^void), func)
-        td.user     = null
-
-        return Thread(td)
-    }
-
-    start :: (&Self) -> bool {
-        res := ResumeThread(data.handle)
-        return res != -1
+        return Thread(thread_data)
     }
 
     join :: (&Self) {
-        WaitForSingleObject(data.handle, INFINITE)
-    }
-
-    terminate :: (&Self) {
-        TerminateThread(data.handle, -1)
+        if const @is_os("windows") {
+            WaitForSingleObject(data.handle, INFINITE)
+        }
+        if const @is_os("linux") {
+            pthread_join(data.handle, null)
+        }
     }
 
     sleep :: (millis: int) {
-        Sleep(cast millis)
+        if const @is_os("windows") {
+            Sleep(cast millis)
+        }
+        if const @is_os("linux") {
+            ts := timespec(
+                tv_sec  = millis / 1000
+                tv_nsec = (millis % 1000) * 1000000
+            )
+
+            loop {
+                res := nanosleep(^ts, ^ts)
+                if res == 0 then break
+            }
+        }
     }
 }
 
@@ -113,6 +173,7 @@ impl Drop for Thread {
     }
 }
 
+//*
 // mutex
 Mutex :: struct {
     handle: HANDLE
@@ -297,3 +358,4 @@ impl Drop for ThreadPool {
         }
     }
 }
+// */

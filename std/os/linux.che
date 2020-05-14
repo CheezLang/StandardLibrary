@@ -7,6 +7,12 @@ timeval :: struct {
     tv_usec : int = default // and microseconds
 }
 
+timespec :: struct {
+    tv_sec  : int = default /* seconds */
+    tv_nsec : int = default /* nanoseconds */
+}
+
 gettimeofday :: (tv: ^timeval, tz: ^void) -> i32;
 
 sleep :: (seconds: u32) -> u32;
+nanosleep :: (requested: ^timespec, remaining: ^timespec) -> i32;
