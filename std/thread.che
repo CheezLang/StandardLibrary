@@ -3,6 +3,8 @@ use import std.array
 use import std.rc
 use import std.ring_queue
 
+io :: import std.io
+
 if const @is_os("windows") {
     use import std.os.windows
     use import std.os.windows_functions
@@ -204,7 +206,10 @@ impl Mutex {
             0x00000000 -> {}
             0x00000080 -> {}
             0x00000102 -> @panic("failed to lock mutex (time out)")
-            0xFFFFFFFF -> @panic("failed to lock mutex")
+            0xFFFFFFFF -> {
+                io.formatln("lock failed with windows error code {:x}", [int(GetLastError())])
+                @panic("failed to lock mutex")
+            }
             $_ -> @panic("failed to lock mutex (unknown error)")
         }
     }
