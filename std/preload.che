@@ -418,7 +418,7 @@ __Trait :: struct {
 
 Traits :: struct {
     from_vtable_and_pointer :: ($T: type, vtable: ^void, value: ^void) -> ^T {
-        t := __Trait(value, vtable)
+        t := __Trait(value, cast vtable)
         return *cast(^^T)^t
     }
 
