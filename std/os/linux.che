@@ -2,6 +2,8 @@ if const @static_assert(@is_os("linux"), "linux.che can only be loaded on linux"
 
 #export_scope
 
+mode_t :: u32
+
 timeval :: struct {
     tv_sec  : int = default // seconds
     tv_usec : int = default // and microseconds
@@ -12,7 +14,65 @@ timespec :: struct {
     tv_nsec : int = default /* nanoseconds */
 }
 
+__errno_location :: () -> ^i32;
+errno :: () -> i32 {
+    return *__errno_location()
+}
+
+EPERM   :: 1    /* Operation not permitted */
+ENOENT  :: 2    /* No such file or directory */
+ESRCH   :: 3    /* No such process */
+EINTR   :: 4    /* Interrupted system call */
+EIO     :: 5    /* I/O error */
+ENXIO   :: 6    /* No such device or address */
+E2BIG   :: 7    /* Argument list too long */
+ENOEXEC :: 8    /* Exec format error */
+EBADF   :: 9    /* Bad file number */
+ECHILD  :: 10   /* No child processes */
+EAGAIN  :: 11   /* Try again */
+ENOMEM  :: 12   /* Out of memory */
+EACCES  :: 13   /* Permission denied */
+EFAULT  :: 14   /* Bad address */
+ENOTBLK :: 15   /* Block device required */
+EBUSY   :: 16   /* Device or resource busy */
+EEXIST  :: 17   /* File exists */
+EXDEV   :: 18   /* Cross-device link */
+ENODEV  :: 19   /* No such device */
+ENOTDIR :: 20   /* Not a directory */
+EISDIR  :: 21   /* Is a directory */
+EINVAL  :: 22   /* Invalid argument */
+ENFILE  :: 23   /* File table overflow */
+EMFILE  :: 24   /* Too many open files */
+ENOTTY  :: 25   /* Not a typewriter */
+ETXTBSY :: 26   /* Text file busy */
+EFBIG   :: 27   /* File too large */
+ENOSPC  :: 28   /* No space left on device */
+ESPIPE  :: 29   /* Illegal seek */
+EROFS   :: 30   /* Read-only file system */
+EMLINK  :: 31   /* Too many links */
+EPIPE   :: 32   /* Broken pipe */
+EDOM    :: 33   /* Math argument out of domain of func */
+ERANGE  :: 34   /* Math result not representable */
+
+NGROUPS_MAX     :: 65536     /* supplemental group IDs are available */
+ARG_MAX         :: 131072    /* # bytes of args + environ for exec() */
+LINK_MAX        :: 127       /* # links a file may have */
+MAX_CANON       :: 255       /* size of the canonical input queue */
+MAX_INPUT       :: 255       /* size of the type-ahead buffer */
+NAME_MAX        :: 255       /* # chars in a file name */
+PATH_MAX        :: 4096      /* # chars in a path name including nul */
+PIPE_BUF        :: 4096      /* # bytes in atomic write to a pipe */
+XATTR_NAME_MAX  :: 255       /* # chars in an extended attribute name */
+XATTR_SIZE_MAX  :: 65536     /* size of an extended attribute value (64k) */
+XATTR_LIST_MAX  :: 65536     /* size of extended attribute namelist (64k) */
+
+
 gettimeofday :: (tv: ^timeval, tz: ^void) -> i32;
 
 sleep :: (seconds: u32) -> u32;
 nanosleep :: (requested: ^timespec, remaining: ^timespec) -> i32;
+
+mkdir    :: (pathname: c_string, mode: mode_t) -> i32;
+getenv   :: (name: c_string) -> c_string;
+readlink :: (pathname: c_string, buf: ^u8, bufsiz: u64) -> i64;
+getcwd   :: (buff: ^u8, bufsiz: u64) -> c_string;

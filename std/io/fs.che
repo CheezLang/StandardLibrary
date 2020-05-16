@@ -9,7 +9,6 @@ if const @is_os("linux") {
 }
 
 use import std.array
-use import std.io.file
 use import std.mem.allocator
 use import std.string
 use import std.util
@@ -26,113 +25,239 @@ FsError :: enum {
 }
 
 create_directory :: (path: string) -> Result[(), FsError] {
-    // get full path
-    full_path := try_with(get_full_path(path), {return Err(FsError.Unknown)})
+    if const @is_os("windows") {
+        // get full path
+        full_path := try_with(get_full_path(path), {return Err(FsError.Unknown)})
+        
+        // prepend \\?\ to path to remove path length limit
+        path_long := String.empty()
+        &path_long += "\\?\"
+        &path_long += &full_path
 
-    // prepend \\?\ to path to remove path length limit
-    path_long := String.empty()
-    &path_long += "\\?\"
-    &path_long += &full_path
+        // convert to utf16
+        full_path_utf16 := try_with(path_long.slice().to_utf16(), {return Err(FsError.Unknown)})
+        return if CreateDirectoryW(full_path_utf16.data, null) != 0 then Ok(()) else match GetLastError() {
+            WindowsErrorCode.ERROR_ALREADY_EXISTS -> Err(FsError.AlreadyExists)
+            WindowsErrorCode.ERROR_PATH_NOT_FOUND -> Err(FsError.PathNotFound)
+            $_ -> Err(FsError.Unknown)
+        }
+    }
 
-    // convert to utf16
-    full_path_utf16 := try_with(path_long.slice().to_utf16(), {return Err(FsError.Unknown)})
-    return if CreateDirectoryW(full_path_utf16.data, null) != 0 then Ok(()) else match GetLastError() {
-        WindowsErrorCode.ERROR_ALREADY_EXISTS -> Err(FsError.AlreadyExists)
-        WindowsErrorCode.ERROR_PATH_NOT_FOUND -> Err(FsError.PathNotFound)
-        $_ -> Err(FsError.Unknown)
+    if const @is_os("linux") {
+        full_path := try_with(expand_path(path), {return Err(FsError.Unknown)})
+
+        default_permissions :: 0x1FF // 0777 in octal
+        result := linux.mkdir(full_path.as_cstring(), default_permissions)
+        if result == 0 {
+            return Ok()
+        }
+
+        err := linux.errno()
+        return if err == linux.EEXIST then Err(FsError.AlreadyExists)
+        else if err == linux.ENOENT then Err(FsError.PathNotFound)
+        else Err(FsError.Unknown)
     }
 }
 
 write_file :: (path: string, content: string) -> Result[(), FsError] {
-    path_utf16 := try_with(path.to_utf16(), {return Err(FsError.InvalidUtf8)})
+    if const @is_os("windows") {
+        path_utf16 := try_with(path.to_utf16(), {return Err(FsError.InvalidUtf8)})
 
-    handle := CreateFileW(path_utf16.get_raw(), GENERIC_WRITE, FILE_SHARE_WRITE, null, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, null)
-    if int(handle) == -1 {
-        return Err(FsError.Unknown)
+        handle := CreateFileW(path_utf16.get_raw(), GENERIC_WRITE, FILE_SHARE_WRITE, null, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, null)
+        if int(handle) == -1 {
+            return Err(FsError.Unknown)
+        }
+
+        bytes_written : u32 = 0
+        if WriteFile(handle, content.bytes.data, cast content.bytes.length, ^bytes_written, null) == 0 {
+            return Err(FsError.Unknown)
+        }
+
+        if CloseHandle(handle) == 0 {
+            return Err(FsError.Unknown)
+        }
+
+        return Ok(())
     }
 
-    bytes_written : u32 = 0
-    if WriteFile(handle, content.bytes.data, cast content.bytes.length, ^bytes_written, null) == 0 {
-        return Err(FsError.Unknown)
-    }
+    if const @is_os("linux") {
+        full_path := try_with(expand_path(path), {return Err(FsError.Unknown)})
+        file := C.fopen(full_path.as_cstring(), "w")
+        if file == null {
+            return Err(FsError.Unknown)
+        }
+        defer C.fclose(file)
+        if C.fwrite(content.bytes.data, 1, cast content.bytes.length, file) != u64(content.bytes.length) {
+            return Err(FsError.Unknown)
+        }
 
-    if CloseHandle(handle) == 0 {
-        return Err(FsError.Unknown)
+        return Ok()
     }
-
-    return Ok(())
 }
 
 append_file :: (path: string, content: string) -> Result[(), FsError] {
-    path_utf16 := try_with(path.to_utf16(), {return Err(FsError.InvalidUtf8)})
+    if const @is_os("windows") {
+        path_utf16 := try_with(path.to_utf16(), {return Err(FsError.InvalidUtf8)})
 
-    handle := CreateFileW(path_utf16.get_raw(), GENERIC_WRITE, FILE_SHARE_WRITE, null, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, null)
-    if int(handle) == -1 {
-        return Err(FsError.Unknown)
+        handle := CreateFileW(path_utf16.get_raw(), GENERIC_WRITE, FILE_SHARE_WRITE, null, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, null)
+        if int(handle) == -1 {
+            return Err(FsError.Unknown)
+        }
+
+        SetFilePointerEx(handle, 0, null, FILE_END)
+
+        bytes_written : u32 = 0
+        if WriteFile(handle, content.bytes.data, cast content.bytes.length, ^bytes_written, null) == 0 {
+            return Err(FsError.Unknown)
+        }
+
+        if CloseHandle(handle) == 0 {
+            return Err(FsError.Unknown)
+        }
+
+        return Ok(())
     }
 
-    SetFilePointerEx(handle, 0, null, FILE_END)
+    if const @is_os("linux") {
+        full_path := try_with(expand_path(path), {return Err(FsError.Unknown)})
+        file := C.fopen(full_path.as_cstring(), "a")
+        if file == null {
+            return Err(FsError.Unknown)
+        }
+        defer C.fclose(file)
 
-    bytes_written : u32 = 0
-    if WriteFile(handle, content.bytes.data, cast content.bytes.length, ^bytes_written, null) == 0 {
-        return Err(FsError.Unknown)
+        if C.fwrite(content.bytes.data, 1, cast content.bytes.length, file) != u64(content.bytes.length) {
+            return Err(FsError.Unknown)
+        }
+
+        return Ok()
     }
-
-    if CloseHandle(handle) == 0 {
-        return Err(FsError.Unknown)
-    }
-
-    return Ok(())
 }
 
 read_file :: (path: string) -> Result[String, FsError] {
-    path_utf16 := try_with(path.to_utf16(), {return Err(FsError.InvalidUtf8)})
+    if const @is_os("windows") {
+        path_utf16 := try_with(path.to_utf16(), {return Err(FsError.InvalidUtf8)})
 
-    handle := CreateFileW(path_utf16.get_raw(), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null)
-    if int(handle) == -1 {
-        return Err(FsError.PathNotFound)
+        handle := CreateFileW(path_utf16.get_raw(), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null)
+        if int(handle) == -1 {
+            return Err(FsError.PathNotFound)
+        }
+
+        size := 0
+        if GetFileSizeEx(handle, ^size) == 0 {
+            return Err(FsError.Unknown)
+        }
+
+        result := String.empty()
+        result.resize(size)
+        
+        bytesRead : u32 = 0
+        if ReadFile(handle, result.get_raw(), cast(u32)size, ^bytesRead, null) == 0 {
+            return Err(FsError.Unknown)
+        }
+
+        if CloseHandle(handle) == 0 {
+            return Err(FsError.Unknown)
+        }
+
+        return Ok(result)
     }
 
-    size := 0
-    if GetFileSizeEx(handle, ^size) == 0 {
-        return Err(FsError.Unknown)
-    }
+    if const @is_os("linux") {
+        full_path := try_with(expand_path(path), {return Err(FsError.Unknown)})
+        file := C.fopen(full_path.as_cstring(), "r")
+        if file == null {
+            return Err(FsError.Unknown)
+        }
+        defer C.fclose(file)
 
-    result := String.empty()
-    result.resize(size)
-    
-    bytesRead : u32 = 0
-    if ReadFile(handle, result.get_raw(), cast(u32)size, ^bytesRead, null) == 0 {
-        return Err(FsError.Unknown)
-    }
+        C.fseek(file, 0, C.SEEK_END)
+        size := C.ftell(file)
+        C.fseek(file, 0, C.SEEK_SET)
 
-    if CloseHandle(handle) == 0 {
-        return Err(FsError.Unknown)
-    }
+        result := String.with_capacity(size + 1)
+        result.resize(size)
 
-    return Ok(result)
+        io.formatln("reading {} bytes", [size])
+
+        if C.fread(result.get_raw(), 1, cast size, file) != u64(size) {
+            return Err(FsError.Unknown)
+        }
+
+        return Ok(result)
+    }
 }
 
 get_full_path :: (path: string) -> Result[String, ()] {
-    path_utf16 := try(path.to_utf16())
+    if const @is_os("windows") {
+        path_utf16 := try(path.to_utf16())
 
-    required_length := GetFullPathNameW(path_utf16.get_raw(), 0, null, null)
-    buffer := alloc_n(u16, required_length)
-    defer free_n(buffer)
+        required_length := GetFullPathNameW(path_utf16.get_raw(), 0, null, null)
+        buffer := alloc_n(u16, required_length)
+        defer free_n(buffer)
 
-    len := GetFullPathNameW(path_utf16.get_raw(), required_length, cast buffer.data, null)
-    if len == 0 {
-        return Err(())
+        len := GetFullPathNameW(path_utf16.get_raw(), required_length, cast buffer.data, null)
+        if len == 0 {
+            return Err(())
+        }
+
+        return String.from_utf16(buffer[..int(len)])
     }
 
-    return String.from_utf16(buffer[..int(len)])
+    if const @is_os("linux") {
+        return expand_path(path)
+    }
+}
+
+expand_path :: (path: string) -> Result[String, ()] {
+    if const @is_os("windows") {
+        path_utf16 := try(path.to_utf16())
+
+        required_length := GetFullPathNameW(path_utf16.get_raw(), 0, null, null)
+        buffer := alloc_n(u16, required_length)
+        defer free_n(buffer)
+
+        len := GetFullPathNameW(path_utf16.get_raw(), required_length, cast buffer.data, null)
+        if len == 0 {
+            return Err(())
+        }
+
+        return String.from_utf16(buffer[..int(len)])
+    }
+    if const @is_os("linux") {
+        result := String.with_capacity(path.bytes.length * 2)
+        if path.starts_with("~") {
+            home_dir := linux.getenv("HOME")
+            if home_dir != null {
+                result += home_dir
+            }
+            result += path[1..]
+        } else {
+            result += path
+        }
+
+        // @todo
+        return Ok(result)
+    }
 }
 
 get_working_directory :: () -> Result[String, ()] {
-    buff : [512]u16 = default
-    length := GetCurrentDirectoryW(cast buff.length, buff.data)
-    return String.from_utf16(buff[..int(length)])
+    if const @is_os("windows") {
+        buff : [512]u16 = default
+        length := GetCurrentDirectoryW(cast buff.length, buff.data)
+        return String.from_utf16(buff[..int(length)])
+    }
+
+    if const @is_os("linux") {
+        buff := String.with_capacity(linux.PATH_MAX)
+        if linux.getcwd(buff.get_raw(), linux.PATH_MAX) == null {
+            return Err()
+        }
+        buff.resize(cast C.strlen(cast buff.get_raw()))
+        return Ok(buff)
+    }
 }
+
 
 Path :: struct {}
 
@@ -221,9 +346,18 @@ impl Path {
     }
 
     get_current_executable_path :: () -> Result[String, ()] {
-        buff := @dup(0u16, MAX_PATH)
-        size := cast(int) GetModuleFileNameW(null, buff.data, cast buff.length)
-        return String.from_utf16(buff[..size])
+        if const @is_os("windows") {
+            buff := @dup(0u16, MAX_PATH)
+            size := cast(int) GetModuleFileNameW(null, buff.data, cast buff.length)
+            return String.from_utf16(buff[..size])
+        }
+
+        if const @is_os("linux") {
+            @assert(false, "get_current_executable_path() not implemented on linux")
+            // buff := @dup(0u16, MAX_PATH)
+            // size := cast(int) GetModuleFileNameW(null, buff.data, cast buff.length)
+            // return String.from_utf16(buff[..size])
+        }
     }
 }
 

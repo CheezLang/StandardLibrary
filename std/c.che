@@ -1,4 +1,15 @@
 #export_scope
+
+FILE :: struct {
+    _Placeholder: ^void
+}
+
+__acrt_iob_func :: (_: u32) -> ^FILE;
+
+stdin  : ^FILE = __acrt_iob_func(1)
+stdout : ^FILE = __acrt_iob_func(1)
+stderr : ^FILE = __acrt_iob_func(1)
+
 getchar   :: () -> i32;
 gets      :: (string: c_string) -> c_string;
 printf    :: (format: c_string) #varargs;
@@ -23,5 +34,28 @@ realloc :: (mem: ^void, size: uint) -> ^void;
 free    :: (mem: ^void);
 
 memcpy  :: (dest: ^void, src: ^void, size: uint);
-memmove  :: (dest: ^void, src: ^void, size: uint);
+memmove :: (dest: ^void, src: ^void, size: uint);
 memset  :: (mem: ^void, value: i32, num: uint) -> ^void;
+
+
+fflush :: (file: ^FILE);
+
+///
+
+errno_t     :: i32
+size_t      :: u64
+
+SEEK_SET    :: 0	/* Seek from beginning of file.  */
+SEEK_CUR    :: 1	/* Seek from current position.  */
+SEEK_END    :: 2	/* Seek from end of file.  */
+
+clearerr_s  :: (_Stream: ^FILE) -> errno_t;
+fopen_s     :: (_Stream: ^^FILE, _FileName: c_string, _Mode: c_string) -> errno_t;
+fopen       :: (_FileName: c_string, _Mode: c_string) -> ^FILE;
+fread_s     :: (_Buffer: ^void, _BufferSize: size_t, _ElementSize: size_t, _ElementCount: size_t, _Stream: ^FILE) -> size_t;
+fread       :: (ptr: ^void, size: u64, count: u64, stream: ^FILE) -> size_t;
+fseek       :: (_Stream: ^FILE, _Offset: i64, _Rel: i32);
+ftell       :: (_Stream: ^FILE) -> i64;
+fclose      :: (_Stream: ^FILE) -> i32;
+fwrite      :: (buffer: ^void, size: size_t, count: size_t, _Stream: ^FILE) -> size_t;
+fprintf     :: (_Stream: ^FILE, format: c_string) #varargs;

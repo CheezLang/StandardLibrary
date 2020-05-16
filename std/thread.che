@@ -13,12 +13,14 @@ if const @is_os("windows") {
     use import std.os.windows_macros
 
     ThreadHandle :: HANDLE
+    MutexHandle :: HANDLE
 }
 if const @is_os("linux") {
     use import std.os.linux
     use import std.os.posix
 
     ThreadHandle :: pthread_t
+    MutexHandle :: pthread_mutex_t
 }
 
 C :: import std.c
@@ -122,6 +124,7 @@ impl Thread {
             thread_data.handle = CreateThread(null, 0, thread_func, cast thread_data, 0, null)
             thread_data.id = cast GetThreadId(thread_data.handle)
             @assert(thread_data.handle != null)
+            
         }
         if const @is_os("linux") {
             thread_func :: (data: ^void) -> ^void {
@@ -175,55 +178,84 @@ impl Drop for Thread {
     }
 }
 
-//*
 // mutex
 Mutex :: struct {
-    handle: HANDLE
+    handle: MutexHandle
 }
 
 impl Mutex {
     new :: () -> Mutex {
-        handle := CreateMutexA(null, 0, null)
-        if handle == null {
-            @panic("Failed to create mutex")
-        }
+        if const @is_os("windows") {
+            handle := CreateMutexA(null, 0, null)
+            if handle == null {
+                @panic("Failed to create mutex")
+            }
 
-        return Mutex(handle)
+            return Mutex(handle)
+        }
+        if const @is_os("linux") {
+            mutex := Mutex(default)
+            @assert(pthread_mutex_init(^mutex.handle, null) == 0)
+            return mutex
+        }
     }
 
     try_lock :: (&Self, timeout: int) -> bool {
-        return match WaitForSingleObject(handle, cast timeout) {
-            0x00000000 -> true
-            0x00000080 -> true
-            0x00000102 -> false
-            0xFFFFFFFF -> false
-            $_ -> false
+        if const @is_os("windows") {
+            return match WaitForSingleObject(handle, cast timeout) {
+                0x00000000 -> true
+                0x00000080 -> true
+                0x00000102 -> false
+                0xFFFFFFFF -> false
+                $_ -> false
+            }
+        }
+        if const @is_os("linux") {
+            return pthread_mutex_trylock(^self.handle) == 0
         }
     }
 
     lock :: (&Self) {
-        match WaitForSingleObject(handle, INFINITE) {
-            0x00000000 -> {}
-            0x00000080 -> {}
-            0x00000102 -> @panic("failed to lock mutex (time out)")
-            0xFFFFFFFF -> {
-                io.formatln("lock failed with windows error code {:x}", [int(GetLastError())])
-                @panic("failed to lock mutex")
+        if const @is_os("windows") {
+            match WaitForSingleObject(handle, INFINITE) {
+                0x00000000 -> {}
+                0x00000080 -> {}
+                0x00000102 -> @panic("failed to lock mutex (time out)")
+                0xFFFFFFFF -> {
+                    io.formatln("lock failed with windows error code {:x}", [int(GetLastError())])
+                    @panic("failed to lock mutex")
+                }
+                $_ -> @panic("failed to lock mutex (unknown error)")
             }
-            $_ -> @panic("failed to lock mutex (unknown error)")
+        }
+        if const @is_os("linux") {
+            @assert(pthread_mutex_lock(^self.handle) == 0)
         }
     }
 
     release :: (&Self) {
-        ReleaseMutex(handle)
+        if const @is_os("windows") {
+            ReleaseMutex(handle)
+        }
+        if const @is_os("linux") {
+            @assert(pthread_mutex_unlock(^self.handle) == 0)
+        }
     }
 }
 
 impl Drop for Mutex {
     drop :: (&Self) {
-        CloseHandle(handle)
+        if const @is_os("windows") {
+            CloseHandle(self.handle)
+        }
+        if const @is_os("linux") {
+            pthread_mutex_destroy(^self.handle)
+        }
     }
 }
+
+
+/*
 
 // 
 ConditionVariable :: struct {
