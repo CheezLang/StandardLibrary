@@ -5,6 +5,10 @@ use import std.ring_queue
 
 io :: import std.io
 
+C :: import std.c
+
+#export_scope
+
 if const @is_os("windows") {
     use import std.os.windows
     use import std.os.windows_functions
@@ -22,10 +26,6 @@ if const @is_os("linux") {
     ThreadHandle :: pthread_t
     MutexHandle :: pthread_mutex_t
 }
-
-C :: import std.c
-
-#export_scope
 
 current_thread_data : ^ThreadData = null #thread_local
 
