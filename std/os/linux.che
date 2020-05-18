@@ -79,12 +79,18 @@ getenv   :: (name: c_string) -> c_string;
 readlink :: (pathname: c_string, buf: ^u8, bufsiz: u64) -> i64;
 getcwd   :: (buff: ^u8, bufsiz: u64) -> c_string;
 
-
 LinuxFiber :: struct {
-    registers       : [32]u64
-    next_address    : ^void
-    data            : ^void
-    stack_base      : ^void
+    rsp : u64
+    r15 : u64
+    r14 : u64
+    r13 : u64
+    r12 : u64
+    rbx : u64
+    rbp : u64
+    rdi : u64
+    data        : ^void
+    stack_base  : ^void
+    parent      : ^LinuxFiber
 }
 
 switch_to_fiber :: (from: ^LinuxFiber, to: ^LinuxFiber) -> int;
