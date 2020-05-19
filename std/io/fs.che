@@ -178,26 +178,9 @@ read_file :: (path: string) -> Result[String, FsError] {
         result := String.with_capacity(size + 1)
         result.resize(size)
 
-        io.formatln("seek said {} bytes", [size])
-
-        BUFFER_SIZE :: 1024
-        buffer := @alloca(u8, BUFFER_SIZE)
-
-        loop {
-            bytes_read := C.fread(buffer.data, 1, cast buffer.length, file)
-            if bytes_read == 0 {
-                if C.feof(file) == 0 {
-                    return Err(FsError.Unknown)
-                } else {
-                    break
-                }
-            }
-            result.append_string(string(buffer.data, i64(bytes_read)))
+        if C.fread(result.get_raw(), 1, cast size, file) != u64(size) {
+            return Err(FsError.Unknown)
         }
-
-        // if C.fread(result.get_raw(), 1, cast size, file) != u64(size) {
-        //     return Err(FsError.Unknown)
-        // }
 
         return Ok(result)
     }
@@ -245,9 +228,6 @@ read_file_binary :: (path: string) -> Result[Array[u8], FsError] {
         C.fseek(file, 0, C.SEEK_SET)
 
         result := Array[u8].create(size + 1)
-        // result.resize(size)
-
-        io.formatln("seek said {} bytes", [size])
 
         buffer := @alloca(u8, 1024)
 
@@ -263,10 +243,6 @@ read_file_binary :: (path: string) -> Result[Array[u8], FsError] {
 
             result.add_slice(buffer[..int(bytes_read)])
         }
-
-        // if C.fread(result.get_raw(), 1, cast size, file) != u64(size) {
-        //     return Err(FsError.Unknown)
-        // }
 
         return Ok(result)
     }
@@ -318,7 +294,12 @@ expand_path :: (path: string) -> Result[String, ()] {
                 result += home_dir
             }
             result += path[1..]
+        } else if path.starts_with("/") {
+            result += path
         } else {
+            wd := try(get_working_directory())
+            result += wd.slice()
+            result += "/"
             result += path
         }
 
@@ -424,7 +405,12 @@ impl Path {
 
         for p in &parts {
             if it_index > 0 {
-                result += "\"
+                if const @is_os("windows") {
+                    result += "\"
+                }
+                if const @is_os("linux") {
+                    result += "/"
+                }
             }
             result += *p
         }

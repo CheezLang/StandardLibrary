@@ -195,7 +195,12 @@ impl Mutex {
         }
         if const @is_os("linux") {
             mutex := Mutex(default)
-            @assert(pthread_mutex_init(^mutex.handle, null) == 0)
+            mutex_attr : pthread_mutexattr_t = default
+            pthread_mutexattr_init(^mutex_attr)
+            defer pthread_mutexattr_destroy(^mutex_attr)
+            pthread_mutexattr_settype(^mutex_attr, PTHREAD_MUTEX_RECURSIVE)
+
+            @assert(pthread_mutex_init(^mutex.handle, ^mutex_attr) == 0)
             return mutex
         }
     }

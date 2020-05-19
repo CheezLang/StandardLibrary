@@ -72,6 +72,86 @@ set_console_color :: (foreground: ConsoleColor, background: ConsoleColor) {
 
         SetConsoleTextAttribute(__std_out_handle, attributes)
     }
+
+    if const @is_os("linux") {
+        set_color_seq := [ 0x1B, 0 ]
+
+        fore := @bin_and(int(foreground), 0b0111)
+        back := @bin_and(int(background), 0b0111)
+        bold := @bin_and(int(foreground), 0b1000) != 0
+
+        if bold {
+            C.printf(cast set_color_seq.data)
+            C.printf("[1m")
+        } else {
+            C.printf(cast set_color_seq.data)
+            C.printf("[0m")
+        }
+
+        C.printf(cast set_color_seq.data)
+        match fore {
+            0b0000 -> C.printf("[30m")
+            0b0001 -> C.printf("[31m")
+            0b0010 -> C.printf("[32m")
+            0b0011 -> C.printf("[33m")
+            0b0100 -> C.printf("[34m")
+            0b0101 -> C.printf("[35m")
+            0b0110 -> C.printf("[36m")
+            0b0111 -> C.printf("[37m")
+        }
+        C.printf(cast set_color_seq.data)
+        match back {
+            0b0000 -> C.printf("[40m")
+            0b0001 -> C.printf("[41m")
+            0b0010 -> C.printf("[42m")
+            0b0011 -> C.printf("[43m")
+            0b0100 -> C.printf("[44m")
+            0b0101 -> C.printf("[45m")
+            0b0110 -> C.printf("[46m")
+            0b0111 -> C.printf("[47m")
+        }
+    }
+}
+
+set_console_foreground_color :: (foreground: ConsoleColor) {
+    if const @is_os("windows") {
+        fg := u16(foreground)
+        attributes := 0u16
+
+        if @bin_and(fg, u16(ConsoleColor.Red))    != 0 { attributes = @bin_or(attributes, FOREGROUND_RED) }
+        if @bin_and(fg, u16(ConsoleColor.Green))  != 0 { attributes = @bin_or(attributes, FOREGROUND_GREEN) }
+        if @bin_and(fg, u16(ConsoleColor.Blue))   != 0 { attributes = @bin_or(attributes, FOREGROUND_BLUE) }
+        if @bin_and(fg, u16(ConsoleColor.Bright)) != 0 { attributes = @bin_or(attributes, FOREGROUND_INTENSITY) }
+
+        SetConsoleTextAttribute(__std_out_handle, attributes)
+    }
+
+    if const @is_os("linux") {
+        set_color_seq := [ 0x1B, 0 ]
+
+        fore := @bin_and(int(foreground), 0b0111)
+        bold := @bin_and(int(foreground), 0b1000) != 0
+
+        if bold {
+            C.printf(cast set_color_seq.data)
+            C.printf("[1m")
+        } else {
+            C.printf(cast set_color_seq.data)
+            C.printf("[0m")
+        }
+
+        C.printf(cast set_color_seq.data)
+        match fore {
+            0b0000 -> C.printf("[30m")
+            0b0001 -> C.printf("[31m")
+            0b0010 -> C.printf("[32m")
+            0b0011 -> C.printf("[33m")
+            0b0100 -> C.printf("[34m")
+            0b0101 -> C.printf("[35m")
+            0b0110 -> C.printf("[36m")
+            0b0111 -> C.printf("[37m")
+        }
+    }
 }
 
 #file_scope
