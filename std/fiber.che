@@ -1,4 +1,5 @@
-use import std.mem.allocator
+mem  :: import std.mem.allocator
+util :: import std.util
 
 if const @is_os("windows") {
     use import std.os.windows
@@ -8,52 +9,124 @@ if const @is_os("windows") {
     use import std.os.windows_macros
 }
 
+if const @is_os("linux") {
+    // linux :: std.os.linux
+
+    #lib("./os/linux/linux_fibers.o")
+    switch_to_fiber :: (from: ^Fiber, to: ^Fiber) -> int;
+}
+
 #export_scope
 
 // @fixme cyclic dependency, but should work
 // thread_fiber : Fiber = Fiber(ConvertThreadToFiber(^thread_fiber), null)
 
-Fiber :: struct {
-    ptr             : ^void
-    parent          : ^Fiber = null
-    func            : Fn(^void)
-    user_data       : ^void
+if const @is_os("linux") {
+    __fiber_guard :: () {
+        loop Fiber.yield()
+    }
+
+    __current_fiber : ^Fiber = null
+}
+
+if const @is_os("windows") {
+    Fiber :: struct {
+        ptr             : ^void
+        parent          : ^Fiber = null
+        func            : Fn(^void)
+        user_data       : ^void
+    }
+}
+
+if const @is_os("linux") {
+    Fiber :: struct {
+        rsp         : u64 = 0
+        r15         : u64 = 0
+        r14         : u64 = 0
+        r13         : u64 = 0
+        r12         : u64 = 0
+        rbx         : u64 = 0
+        rbp         : u64 = 0
+        rdi         : u64 = 0
+        parent      : ^Fiber    = null
+        func        : Fn(^void) = null
+        user_data   : ^void     = null
+    }
 }
 
 impl Drop for Fiber {
     drop :: (&Self) {
-        DeleteFiber(ptr)
+        if const @is_os("windows") {
+            DeleteFiber(ptr)
+        }
     }
 }
 
 impl Fiber {
     init :: () {
-        f := alloc(Fiber)
-        *f = Fiber(
-            ptr     = ConvertThreadToFiber(f)
-            parent  = null
-            func    = null
-            user_data = null
-        )
-        // printfln("[{}] Fiber.init: ({:x}:{:x})", (Thread.current().id, int(f), int(f.ptr)))
+        f := mem.alloc(Fiber)
+        if const @is_os("windows") {
+            // @todo: handle memory leak
+            *f = Fiber(
+                ptr     = ConvertThreadToFiber(f)
+                parent  = null
+                func    = null
+                user_data = null
+            )
+        }
+        if const @is_os("linux") {
+            *f = Fiber(
+                parent      = null
+                func        = null
+                user_data   = null
+            )
+            __current_fiber = f
+        }
     }
 
-    new :: (func: Fn(^$T), user_data: ^T = null) -> ^Fiber {
-        fiber_func :: (param: ^void) #stdcall #nostacktrace {
-            f := cast(^Fiber)param
-            f.func(f.user_data)
-            while true {
-                Fiber.yield()
+    new :: (func: Fn(^$T), user_data: ^T = null, stack_size: int = 1024*1024) -> ^Fiber {
+        if const @is_os("windows") {
+            fiber_func :: (param: ^void) #stdcall #nostacktrace {
+                f := cast(^Fiber)param
+                f.func(f.user_data)
+                while true {
+                    Fiber.yield()
+                }
             }
+
+            f := mem.alloc(Fiber)
+            f.ptr = CreateFiber(cast stack_size, fiber_func, cast f)
+            f.func = cast func
+            f.parent = current()
+            f.user_data = user_data
+            return f
         }
 
-        f := alloc(Fiber)
-        f.ptr = CreateFiber(0, fiber_func, cast f)
-        f.func = cast func
-        f.parent = current()
-        f.user_data = user_data
-        // printfln("[{}] Fiber.new: ({:x}:{:x})", (Thread.current().id, int(f), int(f.ptr)))
-        return f
+        if const @is_os("linux") {
+            fiber_func :: (param: ^void) #nostacktrace {
+                f := cast(^Fiber)param
+                f.func(f.user_data)
+            }
+
+            raw_mem := mem.alloc_raw(u8, cast @sizeof(Fiber) + stack_size)
+            fiber := cast(^Fiber) raw_mem
+            fiber.parent = null
+            fiber.func = cast func
+            fiber.user_data = user_data
+            stack_base := util.pointer_add(raw_mem, cast @sizeof(Fiber) + stack_size)
+            stack_aligned := @bin_and(u64(stack_base), @bin_not(15u64))
+            fiber.rsp = stack_aligned - 32
+
+            guard_var := __fiber_guard
+            *cast(^u64) fiber.rsp + 8 = *cast(^u64) ^guard_var
+
+            fiber_func_var := fiber_func
+            *cast(^u64) fiber.rsp = *cast(^u64) ^fiber_func_var
+
+            fiber.rdi = u64(fiber)
+
+            return fiber
+        }
     }
 
     to_func :: (&Self) -> Fn() {
@@ -61,22 +134,47 @@ impl Fiber {
     }
 
     resume :: (&Self) #nostacktrace {
-        parent = current()
-        SwitchToFiber(ptr)
+        if const @is_os("windows") {
+            self.parent = current()
+            SwitchToFiber(self.ptr)
+        }
+
+        if const @is_os("linux") {
+            @assert(__current_fiber != null)
+            self.parent = __current_fiber
+            from := __current_fiber
+            __current_fiber = ^*self
+            switch_to_fiber(from, __current_fiber)
+        }
     }
 
     yield :: () #nostacktrace {
-        f := current()
-        if f.parent == null {
-            @panic("Can't yield from a fiber without parent")
-        } else {
-            // printfln("[{}] Fiber.yield: ({:x}:{:x}) parent: ({:x}:{:x})", (Thread.current().id, int(f), int(f.ptr), int(f.parent), int(f.parent.ptr)))
-            SwitchToFiber(f.parent.ptr)
+        if const @is_os("windows") {
+            f := current()
+            if f.parent == null {
+                @panic("Can't yield from a fiber without parent")
+            } else {
+                // printfln("[{}] Fiber.yield: ({:x}:{:x}) parent: ({:x}:{:x})", (Thread.current().id, int(f), int(f.ptr), int(f.parent), int(f.parent.ptr)))
+                SwitchToFiber(f.parent.ptr)
+            }
+        }
+
+        if const @is_os("linux") {
+            @assert(__current_fiber != null and __current_fiber.parent != null)
+            to := __current_fiber.parent
+            from := __current_fiber
+            __current_fiber = to
+            switch_to_fiber(from, to)
         }
     }
 
     current :: () -> ^Fiber {
-        return cast GetFiberData()
+        if const @is_os("windows") {
+            return cast GetFiberData()
+        }
+        if const @is_os("linux") {
+            return __current_fiber
+        }
     }
 
     user_data :: ($T: type) -> ^T {

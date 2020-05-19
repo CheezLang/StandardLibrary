@@ -54,8 +54,11 @@ fopen_s     :: (_Stream: ^^FILE, _FileName: c_string, _Mode: c_string) -> errno_
 fopen       :: (_FileName: c_string, _Mode: c_string) -> ^FILE;
 fread_s     :: (_Buffer: ^void, _BufferSize: size_t, _ElementSize: size_t, _ElementCount: size_t, _Stream: ^FILE) -> size_t;
 fread       :: (ptr: ^void, size: u64, count: u64, stream: ^FILE) -> size_t;
+feof        :: (stream: ^FILE) -> i32;
 fseek       :: (_Stream: ^FILE, _Offset: i64, _Rel: i32);
 ftell       :: (_Stream: ^FILE) -> i64;
 fclose      :: (_Stream: ^FILE) -> i32;
 fwrite      :: (buffer: ^void, size: size_t, count: size_t, _Stream: ^FILE) -> size_t;
 fprintf     :: (_Stream: ^FILE, format: c_string) #varargs;
+
+system      :: (command: c_string) -> i32;

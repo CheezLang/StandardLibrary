@@ -91,6 +91,18 @@ impl(T: type) Array[T] {
         length += 1
     }
 
+    add_slice :: (&Self, values: []T) {
+        required_size := count() + values.length
+        cap := get_capacity()
+        while cap <= required_size {
+            cap *= 2
+        }
+        reserve(cap)
+
+        C.memcpy(^data[length], values.data, cast @sizeof(T) * values.length)
+        length += values.length
+    }
+
     push :: (&Self, val: T) {
         if get_capacity() <= get_length() {
             reserve(get_capacity() * 2)

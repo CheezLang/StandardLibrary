@@ -178,15 +178,101 @@ read_file :: (path: string) -> Result[String, FsError] {
         result := String.with_capacity(size + 1)
         result.resize(size)
 
-        io.formatln("reading {} bytes", [size])
+        io.formatln("seek said {} bytes", [size])
 
-        if C.fread(result.get_raw(), 1, cast size, file) != u64(size) {
+        BUFFER_SIZE :: 1024
+        buffer := @alloca(u8, BUFFER_SIZE)
+
+        loop {
+            bytes_read := C.fread(buffer.data, 1, cast buffer.length, file)
+            if bytes_read == 0 {
+                if C.feof(file) == 0 {
+                    return Err(FsError.Unknown)
+                } else {
+                    break
+                }
+            }
+            result.append_string(string(buffer.data, i64(bytes_read)))
+        }
+
+        // if C.fread(result.get_raw(), 1, cast size, file) != u64(size) {
+        //     return Err(FsError.Unknown)
+        // }
+
+        return Ok(result)
+    }
+}
+
+read_file_binary :: (path: string) -> Result[Array[u8], FsError] {
+    if const @is_os("windows") {
+        path_utf16 := try_with(path.to_utf16(), {return Err(FsError.InvalidUtf8)})
+
+        handle := CreateFileW(path_utf16.get_raw(), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null)
+        if int(handle) == -1 {
+            return Err(FsError.PathNotFound)
+        }
+
+        size := 0
+        if GetFileSizeEx(handle, ^size) == 0 {
+            return Err(FsError.Unknown)
+        }
+
+        result := Array[u8].create()
+        result.resize(size)
+        
+        bytesRead : u32 = 0
+        if ReadFile(handle, result.get_raw(), cast(u32)size, ^bytesRead, null) == 0 {
+            return Err(FsError.Unknown)
+        }
+
+        if CloseHandle(handle) == 0 {
             return Err(FsError.Unknown)
         }
 
         return Ok(result)
     }
+
+    if const @is_os("linux") {
+        full_path := try_with(expand_path(path), {return Err(FsError.Unknown)})
+        file := C.fopen(full_path.as_cstring(), "rb")
+        if file == null {
+            return Err(FsError.Unknown)
+        }
+        defer C.fclose(file)
+
+        C.fseek(file, 0, C.SEEK_END)
+        size := C.ftell(file)
+        C.fseek(file, 0, C.SEEK_SET)
+
+        result := Array[u8].create(size + 1)
+        // result.resize(size)
+
+        io.formatln("seek said {} bytes", [size])
+
+        buffer := @alloca(u8, 1024)
+
+        loop {
+            bytes_read := C.fread(buffer.data, 1, cast buffer.length, file)
+            if bytes_read == 0 {
+                if C.feof(file) == 0 {
+                    return Err(FsError.Unknown)
+                } else {
+                    break
+                }
+            }
+
+            result.add_slice(buffer[..int(bytes_read)])
+        }
+
+        // if C.fread(result.get_raw(), 1, cast size, file) != u64(size) {
+        //     return Err(FsError.Unknown)
+        // }
+
+        return Ok(result)
+    }
 }
+
+
 
 get_full_path :: (path: string) -> Result[String, ()] {
     if const @is_os("windows") {

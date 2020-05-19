@@ -1,6 +1,6 @@
 if const @static_assert(@is_os("linux"), "linux.che can only be loaded on linux") {}
 
-#lib("./linux/linux_fibers.o")
+// #lib("./linux/linux_fibers.o")
 
 #export_scope
 
@@ -93,6 +93,4 @@ LinuxFiber :: struct {
     parent      : ^LinuxFiber
 }
 
-switch_to_fiber :: (from: ^LinuxFiber, to: ^LinuxFiber) -> int;
-// switch_to_fiber :: (from: int, to: int) -> int;
-create_fiber :: () -> void;
+// switch_to_fiber :: (from: ^LinuxFiber, to: ^LinuxFiber) -> int;

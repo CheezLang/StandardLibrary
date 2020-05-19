@@ -11,8 +11,7 @@ section .text
 ; rcx: from (^Fiber)
 ; rdx: to   (^Fiber)
 switch_to_fiber:
-    ; mov rsp, [rsi]
-
+    ; save registers
     mov [rdi + 0 * 8], rsp
     mov [rdi + 1 * 8], r15
     mov [rdi + 2 * 8], r14
@@ -22,6 +21,7 @@ switch_to_fiber:
     mov [rdi + 6 * 8], rbp
     mov [rdi + 7 * 8], rdi
 
+    ; load registers
     mov rsp, [rsi + 0 * 8]
     mov r15, [rsi + 1 * 8]
     mov r14, [rsi + 2 * 8]

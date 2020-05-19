@@ -4,9 +4,9 @@ if const @is_os("windows") {
     use import std.os.windows_constants
     use import std.os.windows_types
 }
-if const @is_os("linux") {
-    import std.os.linux
-}
+// if const @is_os("linux") {
+//     linux :: import std.os.linux
+// }
 
 use import std.string
 C   :: import std.c
@@ -16,42 +16,66 @@ fmt :: import std.fmt
 #export_scope
 
 find_on_path :: (program: string) -> Option[String] {
-    buffer: [MAX_PATH]char = default
-    C.memcpy(buffer.data, program.bytes.data, cast program.bytes.length)
-    ok := 0 != PathFindOnPathA(cast buffer.data, null)
-    if !ok {
-        return None
+    if const @is_os("windows") {
+        buffer: [MAX_PATH]char = default
+        C.memcpy(buffer.data, program.bytes.data, cast program.bytes.length)
+        ok := 0 != PathFindOnPathA(cast buffer.data, null)
+        if !ok {
+            return None
+        }
+
+        result := String.from_cstring(cast buffer.data)
+        return Some(result)
     }
 
-    result := String.from_cstring(cast buffer.data)
-    return Some(result)
+    if const @is_os("linux") {
+        @assert(false)
+    }
 }
 
 run_process :: (program: string, args: []string, working_dir: string) -> bool {
-    si := STARTUPINFOA()
-    pi := PROCESS_INFORMATION()
+    if const @is_os("windows") {
+        si := STARTUPINFOA()
+        pi := PROCESS_INFORMATION()
 
-    command_line := String.empty()
-    command_line.appendf("`"{}`"", program)
-    for arg in args {
-        command_line.appendf(" `"{}`"", arg)
+        command_line := String.empty()
+        command_line.appendf("`"{}`"", program)
+        for arg in args {
+            command_line.appendf(" `"{}`"", arg)
+        }
+        command_line.append_char(char(0))
+
+        current_directory := String.from_string(working_dir)
+        current_directory.append_char(char(0))
+        ok := 0 != CreateProcessA(null, cast command_line.get_raw(), null, null, 0, 0, null, cast current_directory.get_raw(), ^si, ^pi)
+
+        if !ok {
+            lastError := GetLastError()
+            io.println(fmt.format("failed to create process: 0x{:x}", [lastError]))
+            return false
+        }
+
+        WaitForSingleObject(pi.hProcess, INFINITE)
+
+        CloseHandle(pi.hThread)
+        CloseHandle(pi.hProcess)
+
+        return true
     }
-    command_line.append_char(char(0))
 
-    current_directory := String.from_string(working_dir)
-    current_directory.append_char(char(0))
-    ok := 0 != CreateProcessA(null, cast command_line.get_raw(), null, null, 0, 0, null, cast current_directory.get_raw(), ^si, ^pi)
+    if const @is_os("linux") {
+        command_line := String.empty()
+        
+        fmt.format_into(&command_line, "cd `"{}`" && ", [working_dir])
 
-    if !ok {
-        lastError := GetLastError()
-        io.println(fmt.format("failed to create process: 0x{:x}", [lastError]))
-        return false
+
+        command_line.appendf("`"{}`"", program)
+        for arg in args {
+            command_line.appendf(" `"{}`"", arg)
+        }
+
+        io.formatln("run process: {}", [command_line])
+        result := C.system(command_line.as_cstring())
+        return true
     }
-
-    WaitForSingleObject(pi.hProcess, INFINITE)
-
-    CloseHandle(pi.hThread)
-    CloseHandle(pi.hProcess)
-
-    return true
 }
