@@ -38,6 +38,10 @@ floor :: (double) -> double;
 ceilf :: (float) -> float;
 ceil  :: (double) -> double;
 
+fract :: (v: $T) -> T {
+    return v - T(i64(v))
+}
+
 mod_pos :: (a: $T, b: T) -> T {
     return ((a % b) + b) % b
 }
@@ -675,5 +679,11 @@ impl Complex {
     polar :: (Self) -> (m: double, p: double) {
         m = sqrt(self.r * self.r + self.i * self.i)
         p = atan2(self.i, self.r)
+    }
+}
+
+impl f64 {
+    map :: (Self, from: (Self, Self), to: (Self, Self)) -> Self {
+        return (self - from[0]) / (from[1] - from[0]) * (to[1] - to[0]) + to[0]
     }
 }
