@@ -142,15 +142,15 @@ impl(K: type, V: type) Map[K, V] {
         }
     }
 
-    get_or_insert :: (&Self, key: $K2, value: fn() -> V) -> &V {
+    get_or_insert :: (&Self, key: $K2, value_creator: fn() -> V) -> &V {
         if entries.data == null {
             adjust_capacity(13)
         }
 
-        entry := find_entry(entries, key)
+        entry := find_entry(entries, &key)
         if !entry.filled {
-            entry.key = Some(key.into())
-            entry.value = Some(value())
+            entry.key = Some(convert(K, &key))
+            entry.value = Some(value_creator())
             entry.filled = true
             entry.is_tombstone = false
             _count += 1
@@ -228,7 +228,7 @@ impl(K: type, V: type) Clone for Map[K, V] if K : Clone, V : Clone {
         result := Map[K, V].new()
         result.adjust_capacity(cast self.entries.length)
         for kv in self {
-            result.set(kv.name.clone(), kv.value.clone())
+            result.set(kv.key.clone(), kv.value.clone())
         }
         return result
     }
@@ -238,7 +238,7 @@ for_extension_map :: (r: &Map[$K, $V], code: Code) #for {
     it_index := 0
     for(by_ref=true) e, _ in r.get_entries() {
         if !e.filled then continue
-        it : (name: &K, value: &V) = &e.key.Some, &e.value.Some
+        it : (key: &K, value: &V) = &e.key.Some, &e.value.Some
         @insert(code, _break=@link(break), _continue=@link(continue))
         it_index += 1
     }

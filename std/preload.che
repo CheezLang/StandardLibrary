@@ -164,6 +164,12 @@ impl Equatable[int] for int {
     }
 }
 
+impl Equatable[TypeId] for TypeId {
+    equal :: (&Self, other: &TypeId) -> bool {
+        return self.ptr == other.ptr
+    }
+}
+
 // impl(F: type, T: type) From[F] for T if F : Into[T], #notyet {
 //     from :: (value: F) -> T {
 //         return F.into(value)
@@ -490,6 +496,11 @@ TypeInfo :: trait {
     impl_funcs  : []TypeInfoImplFunction
 }
 
+TypeId :: struct #copy {
+    ptr: ^TypeInfo
+}
+__ti_TypeId := @type_info(TypeId)
+
 TypeInfoVoid :: struct TypeInfo {}
 __ti_TypeInfoVoid := @type_info(TypeInfoVoid)
 TypeInfoType :: struct TypeInfo {}
@@ -617,8 +628,17 @@ TypeInfoAttribute :: struct #copy {
 }
 
 // 
+impl TypeId {
+    type_info :: (Self) -> ^TypeInfo {
+        return self.ptr
+    }
+}
 
 impl TypeInfo {
+    id :: (&Self) -> TypeId {
+        return TypeId(^*self)
+    }
+
     get_trait_impl :: (&Self, $T: type) -> ^TypeInfoTraitImpl {
         ti := @type_info(T)
         for(by_ref=true) self.traits {
