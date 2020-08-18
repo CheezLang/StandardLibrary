@@ -138,9 +138,9 @@ format_into :: (result: &String, text: string, args: []^any = []) {
                     @assert(argIndex >= 0 and argIndex < args.length)
 
                     if streq(formatArg, "?") {
-                        format_any_into_string(result, value, typ, "", true)
+                        format_any_into_string(result, value, typ, "", false)
                     } else {
-                        format_any_into_string(result, value, typ, formatArg, false)
+                        format_any_into_string(result, value, typ, formatArg, true)
                     }
 
                     argIndex += 1
@@ -162,13 +162,13 @@ format :: (text: string, args: []^any = []) -> String {
 
 #file_scope
 
-format_any_into_string :: (result: &String, data: ^void, typ: ^TypeInfo, format: string, recursive: bool) {
+format_any_into_string :: (result: &String, data: ^void, typ: ^TypeInfo, format: string, use_printable_if_possible: bool) {
     @assert(data != null)
     @assert(typ != null)
-    if !recursive {
+    if use_printable_if_possible {
         trait_func := typ.get_trait_function(Printable, "print", fn(^void, &String, string))
         if trait_func != null {
-            trait_func(data, result, "")
+            trait_func(data, result, format)
             return
         }
     }
@@ -188,15 +188,19 @@ format_any_into_string :: (result: &String, data: ^void, typ: ^TypeInfo, format:
         }
 
         TypeInfoInt($ti) -> {
+            base := if streq("b", format) then 2
+            else if streq("x", format) then 16
+            else 10
+
             match (ti.size, ti.signed) {
-                (1, true)  -> format_int(result, *cast(^i8) data)
-                (2, true)  -> format_int(result, *cast(^i16) data)
-                (4, true)  -> format_int(result, *cast(^i32) data)
-                (8, true)  -> format_int(result, *cast(^i64) data)
-                (1, false) -> format_int(result, *cast(^u8) data)
-                (2, false) -> format_int(result, *cast(^u16) data)
-                (4, false) -> format_int(result, *cast(^u32) data)
-                (8, false) -> format_int(result, *cast(^u64) data)
+                (1, true)  -> format_int(result, *cast(^i8) data, base)
+                (2, true)  -> format_int(result, *cast(^i16) data, base)
+                (4, true)  -> format_int(result, *cast(^i32) data, base)
+                (8, true)  -> format_int(result, *cast(^i64) data, base)
+                (1, false) -> format_int(result, *cast(^u8) data, base)
+                (2, false) -> format_int(result, *cast(^u16) data, base)
+                (4, false) -> format_int(result, *cast(^u32) data, base)
+                (8, false) -> format_int(result, *cast(^u64) data, base)
             }
         }
 
@@ -242,7 +246,7 @@ format_any_into_string :: (result: &String, data: ^void, typ: ^TypeInfo, format:
                 }
 
                 elem := pointer_add(ptr.data, i * ti.target.size)
-                format_any_into_string(result, elem, ti.target, format, recursive)
+                format_any_into_string(result, elem, ti.target, format, use_printable_if_possible)
             }
             result += "]"
         }
@@ -261,7 +265,7 @@ format_any_into_string :: (result: &String, data: ^void, typ: ^TypeInfo, format:
                 }
 
                 elem := pointer_add(ptr, i * ti.target.size)
-                format_any_into_string(result, elem, ti.target, format, recursive)
+                format_any_into_string(result, elem, ti.target, format, use_printable_if_possible)
             }
             result += "]"
         }
@@ -285,7 +289,7 @@ format_any_into_string :: (result: &String, data: ^void, typ: ^TypeInfo, format:
                     member_ptr  := pointer_add(ptr, member_info.offset)
                     result += member_info.name
                     result += " = "
-                    format_any_into_string(result, member_ptr, member_info.typ, format, recursive)
+                    format_any_into_string(result, member_ptr, member_info.typ, format, use_printable_if_possible)
                 }
             }
             result += ")"
@@ -315,7 +319,7 @@ format_any_into_string :: (result: &String, data: ^void, typ: ^TypeInfo, format:
                         mem_val_ptr := pointer_add(ptr, tenum.tag_type.size)
 
                         result += "("
-                        format_any_into_string(result, mem_val_ptr, mem.typ, format, recursive)
+                        format_any_into_string(result, mem_val_ptr, mem.typ, format, use_printable_if_possible)
                         result += ")"
                     }
                 }
@@ -333,7 +337,7 @@ format_any_into_string :: (result: &String, data: ^void, typ: ^TypeInfo, format:
                     }
 
                     member_ptr  := pointer_add(ptr, member_info.offset)
-                    format_any_into_string(result, member_ptr, member_info.typ, format, recursive)
+                    format_any_into_string(result, member_ptr, member_info.typ, format, use_printable_if_possible)
                 }
             }
             result += ")"
