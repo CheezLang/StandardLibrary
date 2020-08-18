@@ -62,3 +62,4 @@ fwrite      :: (buffer: ^void, size: size_t, count: size_t, _Stream: ^FILE) -> s
 fprintf     :: (_Stream: ^FILE, format: c_string) #varargs;
 
 system      :: (command: c_string) -> i32;
+exit        :: (code: i32) -> void;
