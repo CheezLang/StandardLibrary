@@ -298,6 +298,14 @@ impl(T: type) []T {
     get_range_full :: (Self, range: RangeFull) -> []T #operator("[]") {
         return self
     }
+
+    reinterpret_cast :: (Self, $N: type) -> []N {
+        // @static_assert(@sizeof(T) % @sizeof(N) == 0 or @sizof(N) % @sizeof(T) == 0)
+        result : []N = []
+        result.data = cast self.data
+        result.length = self.length * @sizeof(T) / @sizeof(N)
+        return result
+    }
 }
 
 impl(T: type, Size: int) [Size]T {
