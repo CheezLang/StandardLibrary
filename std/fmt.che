@@ -229,7 +229,7 @@ format_any_into_string :: (result: &String, data: ^void, typ: ^TypeInfo, format:
 
         TypeInfoPointer($ti) -> {
             ptr := cast(^^void) data
-            result.appendf("0x{:x}", int(*ptr))
+            result.appendf("^0x{:x}", int(*ptr))
         }
 
         TypeInfoSlice($ti) -> {
@@ -336,7 +336,7 @@ format_any_into_string :: (result: &String, data: ^void, typ: ^TypeInfo, format:
                         result += ", "
                     }
 
-                    member_ptr  := pointer_add(ptr, member_info.offset)
+                    member_ptr := pointer_add(ptr, member_info.offset)
                     format_any_into_string(result, member_ptr, member_info.typ, format, use_printable_if_possible)
                 }
             }
@@ -346,6 +346,21 @@ format_any_into_string :: (result: &String, data: ^void, typ: ^TypeInfo, format:
         TypeInfoFunction($ti) -> {
             ptr := cast(^^void) data
             result.appendf("fn 0x{:x}", int(*ptr))
+        }
+
+        TypeInfoReference($ti) -> {
+            result.appendf("&0x{:x} (", int(*cast(^^void) data))
+            if ti.is_fat {
+                trait_ptr : __Trait = *cast(^__Trait) data
+                ptr, vtable_raw := Traits.destructure(trait_ptr)
+                vtable := cast(^__VTable) vtable_raw
+                format_any_into_string(result, ptr, vtable.type_info, format, use_printable_if_possible)
+            } else {
+                ref_ptr := cast(^^void) data
+                ref := *ref_ptr
+                format_any_into_string(result, ref, ti.target, format, use_printable_if_possible)
+            }
+            result.append_string(")")
         }
 
         $_ -> {
