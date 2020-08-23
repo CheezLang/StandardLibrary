@@ -167,7 +167,7 @@ impl Timer {
 
         // printfln("{}: {}ms", (name, double(dur) * 0.001))
         thread_id := Thread.current().id
-        Instrumentor.get().write_profile(ProfileResult(name, start, end, thread_id))
+        Instrumentor.get().write_profile(ProfileResult(name, start, end, cast thread_id))
 
         stopped = true
     }

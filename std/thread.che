@@ -260,9 +260,8 @@ impl Drop for Mutex {
 }
 
 
-/*
+//*
 
-// 
 ConditionVariable :: struct {
     _impl : CONDITION_VARIABLE
 }
