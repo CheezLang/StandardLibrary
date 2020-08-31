@@ -25,20 +25,20 @@ impl CountingAllocator {
 }
 
 impl Allocator for CountingAllocator {
-    allocate :: (&Self, count: u64, elementSize: u64, alignment: u64) -> ^void {
+    allocate :: (&mut Self, count: u64, elementSize: u64, alignment: u64) -> ^void {
         size := count * elementSize
         allocated += size
 
         mem := parent.allocate(size + @sizeof(u64), 1, alignment)
 
         // store size before allocated memory
-        sizePtr := cast(^u64)mem
+        sizePtr := cast(^mut u64)mem
         *sizePtr = size
 
         return util.pointer_add(mem, @sizeof(u64))
     }
 
-    reallocate :: (&Self, mem: ^void, count: u64, elementSize: u64, alignment: u64) -> ^void {
+    reallocate :: (&mut Self, mut mem: ^void, count: u64, elementSize: u64, alignment: u64) -> ^void {
         size := count * elementSize
         actualMem := util.pointer_add(mem, -@sizeof(u64))
         
@@ -49,12 +49,12 @@ impl Allocator for CountingAllocator {
 
         mem = parent.reallocate(actualMem, size + @sizeof(u64), 1, alignment)
 
-        sizePtr := cast(^u64)mem
+        sizePtr := cast(^mut u64)mem
         *sizePtr = size
         return util.pointer_add(mem, @sizeof(u64))
     }
 
-    free :: (&Self, mem: ^void) {
+    free :: (&mut Self, mem: ^void) {
         actualMem := util.pointer_add(mem, -@sizeof(u64))
         sizePtr := cast(^u64)actualMem
         freed += *sizePtr

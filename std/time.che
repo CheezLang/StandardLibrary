@@ -13,7 +13,7 @@ get_time_microseconds :: () -> int {
         freq := 1
         QueryPerformanceFrequency(^freq)
 
-        time := 0
+        mut time := 0
         QueryPerformanceCounter(^time)
 
         time *= 1000000
@@ -37,7 +37,7 @@ get_time_milliseconds :: () -> int {
         freq := 1
         QueryPerformanceFrequency(^freq)
 
-        time := 0
+        mut time := 0
         QueryPerformanceCounter(^time)
 
         time *= 1000000

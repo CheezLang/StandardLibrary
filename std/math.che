@@ -83,37 +83,37 @@ Vector4 :: struct(T: type) #copy {
 
 impl(T: type) Vector2[T] {
     // ref
-    addv :: (&Self, other: Self) -> &Self #operator("+=") {
+    addv :: (&mut Self, other: Self) -> &Self #operator("+=") {
         x += other.x
         y += other.y
         return self
     }
 
-    subv :: (&Self, other: Self) -> &Self #operator("-=") {
+    subv :: (&mut Self, other: Self) -> &Self #operator("-=") {
         x -= other.x
         y -= other.y
         return self
     }
 
-    mulv :: (&Self, other: Self) -> &Self #operator("*=") {
+    mulv :: (&mut Self, other: Self) -> &Self #operator("*=") {
         x *= other.x
         y *= other.y
         return self
     }
 
-    muls :: (&Self, other: T) -> &Self #operator("*=") {
+    muls :: (&mut Self, other: T) -> &Self #operator("*=") {
         x *= other
         y *= other
         return self
     }
 
-    divv :: (&Self, other: Self) -> &Self #operator("/=") {
+    divv :: (&mut Self, other: Self) -> &Self #operator("/=") {
         x /= other.x
         y /= other.y
         return self
     }
 
-    normalize :: (&Self) -> &Self {
+    normalize :: (&mut Self) -> &Self {
         mag := self.mag()
         if mag != 0 {
             x /= mag
@@ -215,42 +215,42 @@ impl(T: type) Vector2[T] {
 
 impl(T: type) Vector3[T] {
     // ref
-    addv :: (&Self, other: Self) -> &Self #operator("+=") {
+    addv :: (&mut Self, other: Self) -> &Self #operator("+=") {
         x += other.x
         y += other.y
         z += other.z
         return self
     }
 
-    subv :: (&Self, other: Self) -> &Self #operator("-=") {
+    subv :: (&mut Self, other: Self) -> &Self #operator("-=") {
         x -= other.x
         y -= other.y
         z -= other.z
         return self
     }
 
-    mulv :: (&Self, other: Self) -> &Self #operator("*=") {
+    mulv :: (&mut Self, other: Self) -> &Self #operator("*=") {
         x *= other.x
         y *= other.y
         z *= other.z
         return self
     }
 
-    muls :: (&Self, other: T) -> &Self #operator("*=") {
+    muls :: (&mut Self, other: T) -> &Self #operator("*=") {
         x *= other
         y *= other
         z *= other
         return self
     }
 
-    divv :: (&Self, other: Self) -> &Self #operator("/=") {
+    divv :: (&mut Self, other: Self) -> &Self #operator("/=") {
         x /= other.x
         y /= other.y
         z /= other.z
         return self
     }
 
-    normalize :: (&Self) -> &Self {
+    normalize :: (&mut Self) -> &Self {
         mag := self.mag()
         if mag != 0 {
             x /= mag
@@ -418,7 +418,7 @@ impl(T: type) Vector3[T] {
 
 impl(T: type) Vector4[T] {
     // ref
-    addv :: (&Self, other: Self) -> &Self #operator("+=") {
+    addv :: (&mut Self, other: Self) -> &Self #operator("+=") {
         x += other.x
         y += other.y
         z += other.z
@@ -426,7 +426,7 @@ impl(T: type) Vector4[T] {
         return self
     }
 
-    subv :: (&Self, other: Self) -> &Self #operator("-=") {
+    subv :: (&mut Self, other: Self) -> &Self #operator("-=") {
         x -= other.x
         y -= other.y
         z -= other.z
@@ -434,7 +434,7 @@ impl(T: type) Vector4[T] {
         return self
     }
 
-    mulv :: (&Self, other: Self) -> &Self #operator("*=") {
+    mulv :: (&mut Self, other: Self) -> &Self #operator("*=") {
         x *= other.x
         y *= other.y
         z *= other.z
@@ -442,7 +442,7 @@ impl(T: type) Vector4[T] {
         return self
     }
 
-    muls :: (&Self, other: T) -> &Self #operator("*=") {
+    muls :: (&mut Self, other: T) -> &Self #operator("*=") {
         x *= other
         y *= other
         z *= other
@@ -450,7 +450,7 @@ impl(T: type) Vector4[T] {
         return self
     }
 
-    divv :: (&Self, other: Self) -> &Self #operator("/=") {
+    divv :: (&mut Self, other: Self) -> &Self #operator("/=") {
         x /= other.x
         y /= other.y
         z /= other.z
@@ -458,7 +458,7 @@ impl(T: type) Vector4[T] {
         return self
     }
 
-    normalize :: (&Self) -> &Self {
+    normalize :: (&mut Self) -> &Self {
         mag := self.mag()
         if mag != 0 {
             x /= mag
@@ -667,8 +667,8 @@ impl Complex {
             return a
         }
 
-        r := sqrt(a.r * a.r + a.i * a.i)
-        p := atan2(a.i, a.r)
+        mut r := sqrt(a.r * a.r + a.i * a.i)
+        mut p := atan2(a.i, a.r)
 
         r = pow(r, e)
         p = p * e
@@ -677,8 +677,7 @@ impl Complex {
     }
 
     polar :: (Self) -> (m: double, p: double) {
-        m = sqrt(self.r * self.r + self.i * self.i)
-        p = atan2(self.i, self.r)
+        return sqrt(self.r * self.r + self.i * self.i), atan2(self.i, self.r)
     }
 }
 

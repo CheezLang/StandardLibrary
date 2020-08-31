@@ -20,7 +20,7 @@ if const @is_os("windows") {
 #export_scope
 
 String :: struct {
-    data      : []u8
+    data      : []mut u8
     length    : int
     allocator : ^Allocator
 }
@@ -30,8 +30,8 @@ impl Drop for String {
         if allocator != null {
             free_n(data, allocator)
         }
-        data = null
-        length = 0
+        // data = null
+        // length = 0
     }
 }
 
@@ -47,7 +47,7 @@ impl String {
     }
 
     from_raw_ptr :: (ptr: ^u8, cap: int) -> Self {
-        sl : []u8 = ptr
+        mut sl : []u8 = ptr
         sl.length = cap
         return String(sl, 0, null)
     }
@@ -97,7 +97,7 @@ impl String {
         return code_point
     }
 
-    set_char_at :: (&Self, i: int, c: u8) #operator("set[]") {
+    set_char_at :: (&mut Self, i: int, c: u8) #operator("set[]") {
         *data[i] = c
     }
 
@@ -105,7 +105,7 @@ impl String {
         reserve(length + amount)
     }
 
-    reserve :: (&Self, size: int) {
+    reserve :: (&mut Self, size: int) {
         if data.length > size {
             return
         }
@@ -122,16 +122,16 @@ impl String {
         }
     }
 
-    clear :: (&Self) {
+    clear :: (&mut Self) {
         length = 0
     }
 
-    resize :: (&Self, size: int) {
+    resize :: (&mut Self, size: int) {
         self.reserve(size)
         length = size
     }
 
-    append :: (&Self, other: &Self) -> &Self #operator("+=") {
+    append :: (&mut Self, other: &Self) -> &Self #operator("+=") {
         if other.data.data == null {
             return self
         }
@@ -142,7 +142,7 @@ impl String {
         return self
     }
 
-    append_string :: (&Self, other: string) -> &Self #operator("+=") {
+    append_string :: (&mut Self, other: string) -> &Self #operator("+=") {
         newLength := length + other.bytes.length
         self.reserve(newLength)
         C.memcpy(cast ^data.data[length], cast other.bytes.data, cast other.bytes.length)
@@ -150,7 +150,7 @@ impl String {
         return self
     }
 
-    append_cstring :: (&Self, other: c_string) -> &Self #operator("+=") {
+    append_cstring :: (&mut Self, other: c_string) -> &Self #operator("+=") {
         otherLen := C.strlen(other)
         newLength := length + int(otherLen)
         self.reserve(newLength)
@@ -159,7 +159,7 @@ impl String {
         return self
     }
 
-    append_char :: (&Self, ch: char) -> &Self #operator("+=") {
+    append_char :: (&mut Self, ch: char) -> &Self #operator("+=") {
         bytes, count := Utf8.encode(ch)
         newLength := length + int(count)
         self.reserve(newLength)
@@ -200,7 +200,7 @@ impl String {
         return -1
     }
 
-    as_cstring :: (&Self) -> c_string {
+    as_cstring :: (&mut Self) -> c_string {
         reserve(length + 1)
         *data[length] = 0u8
         return cast data.data
@@ -244,12 +244,12 @@ impl Clone for String {
 }
 
 impl String {
-    append_print :: (&Self, pr: ^Printable) -> &Self #operator("+=") {
+    append_print :: (&mut Self, pr: ^Printable) -> &Self #operator("+=") {
         pr.print(self, "")
         return self
     }
 
-    appendf :: (&Self, format: string, arguments: $T) {
+    appendf :: (&mut Self, format: string, arguments: $T) {
         if const @is_tuple(T) {
             if const T.length == 0 {
                 args : [1]^Printable = [^arguments]
@@ -270,16 +270,16 @@ impl String {
     }
 
 
-    append_printables :: (&Self, format: string, args: []^Printable) {
-        formatSpecifier := {
+    append_printables :: (&mut Self, format: string, args: []^Printable) {
+        mut formatSpecifier := {
             len :: 64
             mem := @alloca(u8, len)
             String.from_raw_ptr(mem.data, mem.length)
         }
 
         //len      := format.bytes.length
-        state    := 0
-        argIndex := 0
+        mut state    := 0
+        mut argIndex := 0
 
         // state    - desc
         // 0        - normal
@@ -302,7 +302,7 @@ impl String {
                 if c == '}' {
                     state = 0
 
-                    format := ""
+                    mut format := ""
 
                     colon := formatSpecifier.index_of(':')
                     if colon >= 1 {
@@ -342,7 +342,7 @@ impl String {
     split_at_char :: (&Self, c: char, remove_empty: bool = false) -> Array[string] {
         result := Array[string].create()
 
-        start := 0
+        mut start := 0
         for i in 0..length {
             if *data[i] == u8(c) {
                 sub := self.sliceFT(start, i)
@@ -414,7 +414,7 @@ impl StringSplitCharIterator {
 }
 
 for_extension_string_split_char_iterator :: (self: StringSplitCharIterator, body: Code) #for {
-    it_index := 0
+    mut it_index := 0
 
     while self.remaining.bytes.length > 0 {
         index := self.remaining.index_of(self.split_at)
@@ -434,7 +434,7 @@ for_extension_string_split_char_iterator :: (self: StringSplitCharIterator, body
 }
 
 impl Printable for String {
-    print :: (&Self, str: &String, format: string) {
+    print :: (&Self, str: &mut String, format: string) {
         str += self
     }
 }
@@ -495,7 +495,7 @@ impl string {
         return String.from_string(self)
     }
 
-    slice :: (Self, from: int = 0, length: int = -1) -> string {
+    slice :: (Self, from: int = 0, mut length: int = -1) -> string {
         if length < 0 {
             length = self.bytes.length - from
         }
@@ -546,7 +546,7 @@ impl string {
         return true
     }
 
-    sub_string :: (Self, from_byte: int, to_byte: int = -1) -> string {
+    sub_string :: (Self, from_byte: int, mut to_byte: int = -1) -> string {
         if to_byte == -1 {
             to_byte = self.bytes.length
         }
@@ -564,8 +564,8 @@ impl string {
             return ""
         }
 
-        start := -1
-        end   := -1
+        mut start := -1
+        mut end   := -1
 
         for self.bytes {
             c := char(it)
@@ -599,7 +599,7 @@ impl string {
     }
 
     count_char :: (Self, ch: char) -> int {
-        count := 0
+        mut count := 0
         for c in self {
             if c == ch {
                 count += 1
@@ -652,7 +652,7 @@ impl string {
     }
 
     to_cstring :: (Self) -> c_string {
-        str_c := alloc_raw(char8, cast self.bytes.length + 1)
+        mut str_c := alloc_raw(char8, cast self.bytes.length + 1)
         str_c[self.bytes.length] = cast 0
         C.memcpy(cast str_c, cast self.bytes.data, cast self.bytes.length)
         return str_c
@@ -663,7 +663,7 @@ impl string {
             required_size := MultiByteToWideChar(CP_UTF8, 0, self.bytes.data, cast self.bytes.length, null, 0)
             wide_char_str := Array[u16].create(cast required_size + 1)
             wide_char_str.resize(required_size)
-            *wide_char_str.access_unchecked(required_size) = 0
+            *wide_char_str.access_unchecked_mut(required_size) = 0
             bytes_written := MultiByteToWideChar(CP_UTF8, 0, self.bytes.data, cast self.bytes.length, wide_char_str.get_raw(), required_size)
             if bytes_written < required_size {
                 @assert(false)
@@ -728,7 +728,7 @@ impl c_string {
 for_extension_string_builtin :: (arr: string, code: Code) #for {
     bytes := arr.bytes
 
-    while it_index := 0, it_index < bytes.length {
+    while mut it_index := 0, it_index < bytes.length {
         it, len := Utf8.decode(bytes[it_index..bytes.length])
         @insert(code, _break=break, _continue=continue)
         it_index += int(len)

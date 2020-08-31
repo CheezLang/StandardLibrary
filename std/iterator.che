@@ -120,7 +120,7 @@ RangeIterator :: struct #copy {
 }
 
 impl Iterator[int] for RangeIterator {
-    next :: (&Self) -> Option[int] {
+    next :: (&mut Self) -> Option[int] {
         if from > to {
             return None
         }

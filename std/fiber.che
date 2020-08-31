@@ -94,7 +94,7 @@ impl Fiber {
                 }
             }
 
-            f := mem.alloc(Fiber)
+            mut f := mem.alloc(Fiber)
             f.ptr = CreateFiber(cast stack_size, fiber_func, cast f)
             f.func = cast func
             f.parent = current()
@@ -109,7 +109,7 @@ impl Fiber {
             }
 
             raw_mem := mem.alloc_raw(u8, cast @sizeof(Fiber) + stack_size)
-            fiber := cast(^Fiber) raw_mem
+            mut fiber := cast(^Fiber) raw_mem
             fiber.parent = null
             fiber.func = cast func
             fiber.user_data = user_data
@@ -133,7 +133,7 @@ impl Fiber {
         return cast self.resume
     }
 
-    resume :: (&Self) #nostacktrace {
+    resume :: (&mut Self) #nostacktrace {
         if const @is_os("windows") {
             self.parent = current()
             SwitchToFiber(self.ptr)
@@ -168,7 +168,7 @@ impl Fiber {
         }
     }
 
-    current :: () -> ^Fiber {
+    current :: () -> ^mut Fiber {
         if const @is_os("windows") {
             return cast GetFiberData()
         }
@@ -177,7 +177,7 @@ impl Fiber {
         }
     }
 
-    user_data :: ($T: type) -> ^T {
-        return cast(^T) Fiber.current().user_data
+    user_data :: ($T: type) -> ^mut T {
+        return cast(^mut T) Fiber.current().user_data
     }
 }

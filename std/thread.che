@@ -27,7 +27,7 @@ if const @is_os("linux") {
     MutexHandle :: pthread_mutex_t
 }
 
-current_thread_data : ^ThreadData = null #thread_local
+mut current_thread_data : ^mut ThreadData = null #thread_local
 
 // thread
 Thread :: struct {
@@ -330,7 +330,7 @@ ThreadPoolData :: struct {
 }
 
 ThreadPool :: struct {
-    data: ^ThreadPoolData
+    data: ^mut ThreadPoolData
 }
 
 impl ThreadPool {
@@ -352,7 +352,7 @@ impl ThreadPool {
                     break
                 }
 
-                next : ThreadPoolFunc = (@cast(fn(^void), null), null)
+                mut next : ThreadPoolFunc = (@cast(fn(^void), null), null)
                 if tp.functions.get_length() > 0 {
                     next = tp.functions.pop()
                 }
@@ -378,20 +378,20 @@ impl ThreadPool {
         return data.functions.get_length()
     }
 
-    enqueue :: (&Self, function: fn(^$T), data_ptr: ^T) {
+    enqueue :: (&mut Self, function: fn(^$T), data_ptr: ^T) {
         data.mutex.lock()
         data.functions.push((@cast(fn(^void), function), @cast(^void, data_ptr)))
         data.mutex.release()
     }
 
-    terminate :: (Self, empty_queue: bool) {
-        data.empty_queue = empty_queue
-        data.running = false
+    terminate :: (mut self: Self, empty_queue: bool) {
+        self.data.empty_queue = empty_queue
+        self.data.running = false
     }
 }
 
 impl Drop for ThreadPool {
-    drop :: (&Self) {
+    drop :: (&mut Self) {
         data.running = false
         for &data.threads {
             it.join()

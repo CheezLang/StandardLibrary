@@ -10,7 +10,7 @@ C :: import std.c
 Table :: struct(K: type, V: type) {
     max_load  : double
     count     : uint
-    entries   : []Entry[K, V]
+    entries   : []mut Entry[K, V]
     allocator : ^Allocator
     comparer  : fn (K, K) -> bool
 }
@@ -44,7 +44,7 @@ impl(K: type, V: type) Table[K, V] {
         )
     }
 
-    clear :: (&Self) {
+    clear :: (&mut Self) {
         // @todo
         for(by_ref=true) entry in entries {
             entry.filled = false
@@ -66,10 +66,10 @@ impl(K: type, V: type) Table[K, V] {
         return entries
     }
 
-    find_entry :: (&Self, the_entries: []Entry[K, V], key: K) -> ^Entry[K, V] {
+    find_entry :: (&Self, the_entries: []Entry[K, V], key: K) -> ^mut Entry[K, V] {
 
-        index := K.hash(&key) % cast(uint) the_entries.length
-        tombstone : ^Entry[K, V] = null
+        mut index := K.hash(&key) % cast(uint) the_entries.length
+        mut tombstone : ^Entry[K, V] = null
 
         while true {
             entry := the_entries[int(index)]
@@ -95,7 +95,7 @@ impl(K: type, V: type) Table[K, V] {
         return null
     }
 
-    set :: (&Self, key: K, value: V) -> bool #operator("set[]") {
+    set :: (&mut Self, key: K, value: V) -> bool #operator("set[]") {
         if entries.data == null {
             adjust_capacity(13)
         }
@@ -103,7 +103,7 @@ impl(K: type, V: type) Table[K, V] {
             adjust_capacity(cast(uint) entries.length * 2)
         }
 
-        entry := find_entry(entries, key)
+        mut entry := find_entry(entries, key)
         is_new_key := !entry.filled
         entry.key = key
         entry.value = Some(value)
@@ -117,7 +117,7 @@ impl(K: type, V: type) Table[K, V] {
         return is_new_key
     }
 
-    get :: (&Self, key: K) -> Option[&V] {
+    get :: (&mut Self, key: K) -> Option[&V] {
         if entries.data == null {
             return None
         }
@@ -133,12 +133,12 @@ impl(K: type, V: type) Table[K, V] {
         }
     }
 
-    get_or_insert :: (&Self, key: K, value: fn() -> V) -> &V {
+    get_or_insert :: (&mut Self, key: K, value: fn() -> V) -> &V {
         if entries.data == null {
             adjust_capacity(13)
         }
 
-        entry := find_entry(entries, key)
+        mut entry := find_entry(entries, key)
         if !entry.filled {
             entry.key = key
             entry.value = Some(value())
@@ -165,10 +165,10 @@ impl(K: type, V: type) Table[K, V] {
         return &entry.value.Some
     }
 
-    delete :: (&Self, key: K) -> bool {
+    delete :: (&mut Self, key: K) -> bool {
         if count == 0 or entries.data == null { return false }
 
-        entry := find_entry(entries, key)
+        mut entry := find_entry(entries, key)
         if !entry.filled { return false }
 
         entry.filled = false
@@ -180,7 +180,7 @@ impl(K: type, V: type) Table[K, V] {
         return true
     }
 
-    adjust_capacity :: (&Self, cap: uint) {
+    adjust_capacity :: (&mut Self, cap: uint) {
         entries_new := alloc_n(Entry[K, V], cap, allocator)
 
         for i in 0..entries_new.length {
@@ -222,7 +222,7 @@ impl(K: type, V: type) Table[K, V] {
 
 impl(K: type, V: type) Clone for Table[K, V] if K : Clone, V : Clone {
     clone :: (&Self) -> Self {
-        result := Table[K, V].create(self.comparer)
+        mut result := Table[K, V].create(self.comparer)
         result.adjust_capacity(cast self.entries.length)
         for kv in self {
             result[kv.name.clone()] = kv.value.clone()
@@ -232,7 +232,7 @@ impl(K: type, V: type) Clone for Table[K, V] if K : Clone, V : Clone {
 }
 
 for_extension_table :: (r: &Table[$K, $V], code: Code) #for {
-    it_index := 0
+    mut it_index := 0
     for(by_ref=true) e, _ in r.get_entries() {
         if !e.filled then continue
         it : (name: K, value: &V) = e.key, &e.value.Some

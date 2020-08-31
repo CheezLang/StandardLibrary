@@ -398,9 +398,9 @@ impl Path {
     normalize :: (path: string) -> String {
         parts := Array[string].create()
 
-        starts_with_slash := false
+        mut starts_with_slash := false
 
-        start := 0
+        mut start := 0
         for i in 0 .. path.bytes.length {
             c := char(*path.bytes[i])
 

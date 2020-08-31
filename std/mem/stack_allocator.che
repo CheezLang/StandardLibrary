@@ -22,7 +22,7 @@ impl Printable for StackAllocation {
 
 StackAllocator :: struct {
     parent      : ^Allocator
-    memory      : ^void
+    memory      : ^mut void
     capacity    : u64
     allocations : Array[StackAllocation]
 }
@@ -35,7 +35,7 @@ impl Drop for StackAllocator {
 }
 
 impl Printable for StackAllocator {
-    print :: (&Self, s: &String, format: string) {
+    print :: (&Self, s: &mut String, format: string) {
         s += "( ["
         for i in 0..allocations.length {
             if i > 0 {
@@ -45,7 +45,7 @@ impl Printable for StackAllocator {
         }
         s += "]"
 
-        free : u64 = capacity
+        mut free : u64 = capacity
         if lastAllocation := self.getLastAllocation(), lastAllocation != null {
             free = capacity - (lastAllocation.offset + lastAllocation.size)
         }
@@ -65,7 +65,7 @@ impl StackAllocator {
         return a
     }
 
-    reserve :: (&Self, s: u64) {
+    reserve :: (&mut Self, s: u64) {
         if s <= capacity {
             return
         }
@@ -78,7 +78,7 @@ impl StackAllocator {
         }
     }
 
-    clear :: (&Self) {
+    clear :: (&mut Self) {
         allocations.resize(0)
     }
 
@@ -93,7 +93,7 @@ impl StackAllocator {
         }
         &s += "]"
 
-        free : u64 = capacity
+        mut free : u64 = capacity
 
         if lastAllocation := self.getLastAllocation(), lastAllocation != null {
             free = capacity - (lastAllocation.offset + lastAllocation.size)
@@ -102,11 +102,11 @@ impl StackAllocator {
         io.print(s)
     }
 
-    getLastAllocation :: (&Self) -> ^StackAllocation {
+    getLastAllocation :: (&Self) -> ^mut StackAllocation {
         if allocations.length == 0 {
             return null
         } else {
-            return ^*allocations[allocations.length - 1]
+            return ^mut *allocations[allocations.length - 1]
         }
     }
 
@@ -120,7 +120,7 @@ impl StackAllocator {
 }
 
 impl Allocator for StackAllocator {
-    allocate :: (&Self, count: u64, elementSize: u64, alignment: u64) -> ^void {
+    allocate :: (&mut Self, count: u64, elementSize: u64, alignment: u64) -> ^void {
 
         nextAddress := {
             unaligned := util.pointer_add(memory, cast(i64) self.getNextAllocationOffset())
@@ -143,7 +143,7 @@ impl Allocator for StackAllocator {
         return nextAddress
     }
 
-    reallocate :: (&Self, mem: ^void, count: u64, elementSize: u64, alignment: u64) -> ^void {
+    reallocate :: (&mut Self, mem: ^void, count: u64, elementSize: u64, alignment: u64) -> ^void {
         size := count * elementSize
 
         lastAllocation := self.getLastAllocation()
@@ -167,7 +167,7 @@ impl Allocator for StackAllocator {
         }
     }
 
-    free :: (&Self, mem: ^void) {
+    free :: (&mut Self, mem: ^void) {
         lastAllocation := self.getLastAllocation()
         if lastAllocation == null {
             return

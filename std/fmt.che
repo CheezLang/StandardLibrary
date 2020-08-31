@@ -15,16 +15,16 @@ align :: (amount: int) -> FmtAlign {
 }
 
 impl Printable for FmtAlign {
-    print :: (&Self, str: &String, format: string) {
+    print :: (&Self, str: &mut String, format: string) {
         while str.get_length() < amount {
             str += ' '
         }
     }
 }
 
-parse_int :: (str: string) -> int {
-    val := 0
-    sign := 1
+parse_int :: (mut str: string) -> int {
+    mut val := 0
+    mut sign := 1
 
     if str.bytes.length > 0 and char(*str[0]) == '-' {
         sign = -1
@@ -39,7 +39,7 @@ parse_int :: (str: string) -> int {
     return val * sign
 }
 
-format_int :: (buffer: &String, val: $T, _base: int = 10) {
+format_int :: (buffer: &String, mut val: $T, _base: int = 10) {
     digit_to_char :: (i: $T) -> char {
         c := char(i)
         return if i < 10 { c + '0' } else { (c - char(10)) + 'A' }
@@ -48,11 +48,11 @@ format_int :: (buffer: &String, val: $T, _base: int = 10) {
     base := T(_base)
 
     // calculate length and sign
-    len, sign : int, T = if val < 0 then (1, -1)
+    mut len, sign : int, T = if val < 0 then (1, -1)
     else if val == 0 then (1, 1)
     else (0, 1)
 
-    while v := val, v != 0, v /= base {
+    while mut v := val, v != 0, v /= base {
         len += 1
     }
 
@@ -62,7 +62,7 @@ format_int :: (buffer: &String, val: $T, _base: int = 10) {
     if val == 0 {
         buffer[buffer.length - 1] = u8('0')
     } else {
-        i := buffer.length - 1
+        mut i := buffer.length - 1
         while val != 0, i -= 1 {
             lastDigit := (val % base) * sign
 
@@ -81,19 +81,19 @@ format_any :: (arg: ^any) -> String {
     return format("{}", [arg])
 }
 
-format_into :: (result: &String, text: string, args: []^any = []) {
+format_into :: (result: &mut String, text: string, args: []^any = []) {
     State :: enum #copy { Text, Format, Escape }
     use State
 
-    formatSpecifier := {
+    mut formatSpecifier := {
         len :: 64
         mem := @alloca(u8, len)
         String.from_raw_ptr(mem.data, len)
     }
 
-    len      := text.bytes.length
-    argIndex := 0
-    state    := Text
+    len         := text.bytes.length
+    mut argIndex:= 0
+    mut state   := Text
 
     for c in text {
         match state {
@@ -117,7 +117,7 @@ format_into :: (result: &String, text: string, args: []^any = []) {
                     state = Text
                     value := @ptr_of_any(args[argIndex])
                     typ := @type_info_of_any(args[argIndex])
-                    formatArg : string = ""
+                    mut formatArg : string = ""
 
                     colon := formatSpecifier.index_of(':')
                     if colon >= 1 {
@@ -162,7 +162,7 @@ format :: (text: string, args: []^any = []) -> String {
 
 #file_scope
 
-format_any_into_string :: (result: &String, data: ^void, typ: ^TypeInfo, format: string, use_printable_if_possible: bool) {
+format_any_into_string :: (result: &mut String, data: ^void, typ: ^TypeInfo, format: string, use_printable_if_possible: bool) {
     @assert(data != null)
     @assert(typ != null)
     if use_printable_if_possible {
@@ -276,7 +276,7 @@ format_any_into_string :: (result: &String, data: ^void, typ: ^TypeInfo, format:
 
             result += "("
             if tstruct.members.data != null {
-                comma := false
+                mut comma := false
                 for i in 0..tstruct.members.length {
                     member_info := tstruct.members[i]
                     if member_info.has_attribute("fmt_ignore") then continue

@@ -6,7 +6,7 @@ C :: import std.c
 #export_scope
 
 Array :: struct(T: type) {
-    data            : ^T
+    data            : ^mut T
     capacity        : int
     length          : int
     allocator       : ^Allocator
@@ -20,8 +20,8 @@ impl(T: type) Drop for Array[T] {
         }
 
         free(data, allocator)
-        data = null
-        length = 0
+        // data = null
+        // length = 0
     }
 }
 
@@ -50,7 +50,7 @@ impl(T: type) Array[T] {
         return s
     }
 
-    reserve :: (&Self, size: int) {
+    reserve :: (&mut Self, size: int) {
         @assert(length <= size)
         if capacity >= size {
             return
@@ -84,12 +84,12 @@ impl(T: type) Array[T] {
         return data
     }
 
-    clear :: (&Self) {
+    clear :: (&mut Self) {
         for 0..length do Memory.drop(data[it])
         length = 0
     }
 
-    add :: (&Self, val: T) {
+    add :: (&mut Self, val: T) {
         if get_capacity() <= get_length() {
             reserve(get_capacity() * 2)
         }
@@ -98,9 +98,9 @@ impl(T: type) Array[T] {
         length += 1
     }
 
-    add_slice :: (&Self, values: []T) {
+    add_slice :: (&mut Self, values: []T) {
         required_size := count() + values.length
-        cap := get_capacity()
+        mut cap := get_capacity()
         while cap <= required_size {
             cap *= 2
         }
@@ -110,7 +110,7 @@ impl(T: type) Array[T] {
         length += values.length
     }
 
-    push :: (&Self, val: T) {
+    push :: (&mut Self, val: T) {
         if get_capacity() <= get_length() {
             reserve(get_capacity() * 2)
         }
@@ -119,7 +119,7 @@ impl(T: type) Array[T] {
         length += 1
     }
 
-    pop :: (&Self) -> T {
+    pop :: (&mut Self) -> T {
         @assert(length > 0)
 
         length -= 1
@@ -139,13 +139,13 @@ impl(T: type) Array[T] {
         }
     }
 
-    remove_at :: (&Self, index: int) -> T {
+    remove_at :: (&mut Self, index: int) -> T {
         @assert(index >= 0 and index < get_length())
 
         result := data[length]
         length -= 1
 
-        while i := index, i < length, i += 1 {
+        while mut i := index, i < length, i += 1 {
             data[i] = data[i + 1]
         }
 
@@ -153,6 +153,10 @@ impl(T: type) Array[T] {
     }
 
     access_unchecked :: (&Self, index: int) -> &T {
+        return &data[index]
+    }
+
+    access_unchecked_mut :: (&mut Self, index: int) -> &mut T {
         return &data[index]
     }
 
@@ -164,9 +168,17 @@ impl(T: type) Array[T] {
         return &data[index]
     }
 
+    access :: (&mut Self, index: int) -> &mut T #operator("[]") {
+        if !(index >= 0 and index < length) {
+            C.printf("%lld`n", index)
+        }
+        @assert(index >= 0 and index < length, "Index was out of range")
+        return &data[index]
+    }
+
     sliceFL :: (&Self, from: int, len: int) -> []T {
         @assert(from >= 0 and len >= 0 and from + len <= length, "Invalid range")
-        slice : []T = ^data[from]
+        mut slice : []T = ^data[from]
         slice.length = len
         return slice
     }
@@ -189,12 +201,12 @@ impl(T: type) Array[T] {
         return self
     }
 
-    quick_sort :: (&Self, from: int, to: int, cmp: fn (&T, &T) -> int) {
+    quick_sort :: (&mut Self, from: int, to: int, cmp: fn (&T, &T) -> int) {
         if from >= to {
             return
         }
 
-        idx := from
+        mut idx := from
         pivot := data[to]
 
         for i in from..to {
@@ -234,7 +246,7 @@ impl(T: type) Array[T] {
 // @todo: only apply this impl if T is default constructable, e.g.:
 // impl(T: type) Array(T) if @is_default_constructable(T) { ...
 impl(T: type) Array[T] if @is_default_constructable(T) {
-    resize :: (&Self, size: int) {
+    resize :: (&mut Self, size: int) {
         if capacity < size {
             self.reserve(size)
         }
@@ -278,7 +290,7 @@ impl(F: type, T: type) From[Array[F]] for Array[T] if T : From[F], #notyet {
 
 for_extension_array_T :: (arr: &Array[$T], code: Code, reverse: bool = false,
                             by_ref: bool = true) #for {
-    while it_index := 0, it_index < arr.get_length(), it_index += 1 {
+    while mut it_index := 0, it_index < arr.get_length(), it_index += 1 {
         if const reverse {
             it_index_rev := arr.length - it_index - 1
             if const by_ref {

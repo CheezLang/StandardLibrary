@@ -15,11 +15,11 @@ impl LinearCongruentialGenerator {
         return Self(seed)
     }
 
-    set_seed :: (&Self, seed: u64) {
+    set_seed :: (&mut Self, seed: u64) {
         self.seed = seed
     }
 
-    next :: (&Self) -> u32 {
+    next :: (&mut Self) -> u32 {
         M : u64 = cast(u64) u32.max
         A : u64 = 1664525
         B : u64 = 1013904223
@@ -45,7 +45,7 @@ impl PseudoRandomGen for LinearCongruentialGenerator {
     }
 }
 
-lcg : ^LinearCongruentialGenerator = null
+mut lcg : ^mut LinearCongruentialGenerator = null
 
 PseudoRandomGen :: trait {
     next_u32 :: (&Self) -> u32;
