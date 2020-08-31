@@ -84,7 +84,7 @@ impl Fiber {
         }
     }
 
-    new :: (func: Fn(^$T), user_data: ^T = null, stack_size: int = 1024*1024) -> ^Fiber {
+    new :: (func: Fn(^$T), user_data: ^T = null, stack_size: int = 1024*1024) -> ^mut Fiber {
         if const @is_os("windows") {
             fiber_func :: (param: ^void) #stdcall #nostacktrace {
                 f := cast(^Fiber)param

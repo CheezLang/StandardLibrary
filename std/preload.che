@@ -370,7 +370,7 @@ impl(T: type) []T {
 }
 
 impl(T: type, Size: int) [Size]T {
-    get_index :: (&Self, index: int) -> &T #operator("[]") {
+    get_index :: (&Self, index: int) -> &mut T #operator("[]") {
         return &mut *pointer_add_sized(self.data, index)
         // return *cast(^T) int(self.data) + index * @sizeof(T)
     }
@@ -380,44 +380,44 @@ impl(T: type, Size: int) [Size]T {
         // return *cast(^T) int(self.data) + index * @sizeof(T)
     }
 
-    get_range :: (&Self, range: Range[int]) -> []T #operator("[]") {
-        mut result : []T = *self
+    get_range :: (&Self, range: Range[int]) -> []mut T #operator("[]") {
+        mut result : []mut T = *self
         result.data = cast int(result.data) + range.start * @sizeof(T)
         result.length = range.end - range.start
         return result
     }
 
-    get_range_inclusive :: (&Self, range: RangeInclusive[int]) -> []T #operator("[]") {
-        mut result : []T = *self
+    get_range_inclusive :: (&Self, range: RangeInclusive[int]) -> []mut T #operator("[]") {
+        mut result : []mut T = *self
         result.data = cast int(result.data) + range.start * @sizeof(T)
         result.length = range.end - range.start + 1
         return result
     }
 
-    get_range_to :: (&Self, range: RangeTo[int]) -> []T #operator("[]") {
+    get_range_to :: (&Self, range: RangeTo[int]) -> []mut T #operator("[]") {
         @assert(range.end >= 0 and range.end <= self.length)
-        mut result : []T = *self
+        mut result : []mut T = *self
         result.length = range.end
         return result
     }
 
-    get_range_to_incl :: (&Self, range: RangeToInclusive[int]) -> []T #operator("[]") {
+    get_range_to_incl :: (&Self, range: RangeToInclusive[int]) -> []mut T #operator("[]") {
         @assert(range.end >= 0 and range.end < self.length)
-        mut result : []T = *self
+        mut result : []mut T = *self
         result.length = range.end + 1
         return result
     }
 
-    get_range_from :: (&Self, range: RangeFrom[int]) -> []T #operator("[]") {
+    get_range_from :: (&Self, range: RangeFrom[int]) -> []mut T #operator("[]") {
         @assert(range.start >= 0 and range.start <= self.length)
-        mut result : []T = *self
+        mut result : []mut T = *self
         result.data = cast int(result.data) + range.start * @sizeof(T)
         result.length = self.length - range.start
         return result
     }
 
-    get_range_full :: (&Self, range: RangeFull) -> []T #operator("[]") {
-        return cast([]T) *self
+    get_range_full :: (&Self, range: RangeFull) -> []mut T #operator("[]") {
+        return cast([]mut T) *self
     }
 }
 

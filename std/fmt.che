@@ -39,7 +39,7 @@ parse_int :: (mut str: string) -> int {
     return val * sign
 }
 
-format_int :: (buffer: &String, mut val: $T, _base: int = 10) {
+format_int :: (buffer: &mut String, mut val: $T, _base: int = 10) {
     digit_to_char :: (i: $T) -> char {
         c := char(i)
         return if i < 10 { c + '0' } else { (c - char(10)) + 'A' }

@@ -126,9 +126,9 @@ impl(T: type) Array[T] {
         return data[length]
     }
 
-    peek_last :: (&Self) -> &T {
+    peek_last :: (&Self) -> &mut T {
         @assert(length > 0, "Array is empty")
-        return &data[length - 1]
+        return &mut data[length - 1]
     }
 
     get :: (&Self, index: int) -> Option[T] {
@@ -168,7 +168,7 @@ impl(T: type) Array[T] {
         return &data[index]
     }
 
-    access :: (&mut Self, index: int) -> &mut T #operator("[]") {
+    access_mut :: (&mut Self, index: int) -> &mut T #operator("[]") {
         if !(index >= 0 and index < length) {
             C.printf("%lld`n", index)
         }
@@ -187,6 +187,12 @@ impl(T: type) Array[T] {
         return self.sliceFL(0, length)
     }
 
+    slice_mut :: (&Self) -> []mut T {
+        mut slice : []mut T = ^mut data[0]
+        slice.length = length
+        return slice
+    }
+
     sliceF :: (&Self, from: int) -> []T {
         return self.sliceFL(from, length - from)
     }
@@ -195,7 +201,7 @@ impl(T: type) Array[T] {
         return self.sliceFL(0, len)
     }
 
-    sort :: (&Self, cmp: fn (&T, &T) -> int) -> &Self {
+    sort :: (&mut Self, cmp: fn (&T, &T) -> int) -> &Self {
         quick_sort(0, length - 1, cmp)
 
         return self
@@ -270,7 +276,7 @@ ArrayIterator :: struct(T: type) #copy {
 
 impl(F: type, T: type) Into[Array[T]] for Array[F] if F : Into[T], #notyet {
     into :: (&Self) -> Array[T] {
-        result := Array[T].create(self.get_length())
+        mut result := Array[T].create(self.get_length())
         for 0..self.get_length() {
             result.add(F.into(self.access_unchecked(it)))
         }
@@ -280,7 +286,7 @@ impl(F: type, T: type) Into[Array[T]] for Array[F] if F : Into[T], #notyet {
 
 impl(F: type, T: type) From[Array[F]] for Array[T] if T : From[F], #notyet {
     from :: (value: Array[F]) -> Array[T] {
-        result := Array[T].create(value.get_length())
+        mut result := Array[T].create(value.get_length())
         for 0..value.get_length() {
             result.add(F.into(value.access_unchecked(it)))
         }
@@ -288,22 +294,44 @@ impl(F: type, T: type) From[Array[F]] for Array[T] if T : From[F], #notyet {
     }
 }
 
-for_extension_array_T :: (arr: &Array[$T], code: Code, reverse: bool = false,
+// for_extension_array_T :: (arr: &Array[$T], code: Code, reverse: bool = false,
+//                             by_ref: bool = true) #for {
+//     while mut it_index := 0, it_index < arr.get_length(), it_index += 1 {
+//         if const reverse {
+//             it_index_rev := arr.length - it_index - 1
+//             if const by_ref {
+//                 it := arr[it_index_rev]
+//             } else {
+//                 it := *arr[it_index_rev]
+//             }
+//             @insert(code, link=[it_index_rev], _break=break, _continue=continue)
+//         } else {
+//             if const by_ref {
+//                 it := arr[it_index]
+//             } else {
+//                 it := *arr[it_index]
+//             }
+//             @insert(code, _break=break, _continue=continue)
+//         }
+//     }
+// }
+
+for_extension_array_T_mut :: (arr: &mut Array[$T], code: Code, reverse: bool = false,
                             by_ref: bool = true) #for {
     while mut it_index := 0, it_index < arr.get_length(), it_index += 1 {
         if const reverse {
             it_index_rev := arr.length - it_index - 1
             if const by_ref {
-                it := arr[it_index_rev]
+                mut it : &mut T = arr.access_unchecked_mut(it_index_rev)
             } else {
-                it := *arr[it_index_rev]
+                mut it : T = *arr.access_unchecked_mut(it_index_rev)
             }
             @insert(code, link=[it_index_rev], _break=break, _continue=continue)
         } else {
             if const by_ref {
-                it := arr[it_index]
+                mut it : &mut T = arr.access_unchecked_mut(it_index)
             } else {
-                it := *arr[it_index]
+                mut it : T = *arr.access_unchecked_mut(it_index)
             }
             @insert(code, _break=break, _continue=continue)
         }
@@ -312,7 +340,7 @@ for_extension_array_T :: (arr: &Array[$T], code: Code, reverse: bool = false,
 
 impl(T: type) Into[Array[T]] for []T if T : Clone {
     into :: (&Self) -> Array[T] {
-        result := Array[T].create(self.length)
+        mut result := Array[T].create(self.length)
         for(by_ref=true) v in self[..] {
             result.add(v.clone())
         }

@@ -43,7 +43,7 @@ Iterator :: trait(T: type) {
 // }
 
 impl(It: type, T: type) It if It : Iterator[T] {
-    skip :: (&Self, count: int) -> Self {
+    skip :: (&mut Self, count: int) -> Self {
         for 0..count {
             self.next()
         }
@@ -59,7 +59,7 @@ impl(It: type, T: type) It if It : Iterator[T] {
         return MapIterator[T, X](^*self, mapFunc)
     }
 
-    foreach :: (&Self, func: fn (T)) {
+    foreach :: (&mut Self, func: fn (T)) {
         while true {
             match self.next() {
                 Some($v) -> func(v)
@@ -68,7 +68,7 @@ impl(It: type, T: type) It if It : Iterator[T] {
         }
     }
 
-    to_array :: (&Self) -> Array[T] {
+    to_array :: (&mut Self) -> Array[T] {
         a := Array[T].create()
         while match self.next() {
             Some($v) -> {

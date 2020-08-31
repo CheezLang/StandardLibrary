@@ -13,7 +13,7 @@ alloc :: ($T: type, allocator: ^Allocator = ^DEFAULT_STD_HEAP_ALLOCATOR) -> ^mut
 }
 
 alloc_raw :: ($T: type, count: uint, allocator: ^Allocator = ^DEFAULT_STD_HEAP_ALLOCATOR) -> ^mut T {
-    return cast(^T)allocator.allocate(cast count, @sizeof(T), @alignof(T))
+    return cast(^mut T)allocator.allocate(cast count, @sizeof(T), @alignof(T))
 }
 
 realloc_raw :: (mem: ^$T, count: uint, allocator: ^Allocator = ^DEFAULT_STD_HEAP_ALLOCATOR) -> ^mut T {
@@ -21,12 +21,12 @@ realloc_raw :: (mem: ^$T, count: uint, allocator: ^Allocator = ^DEFAULT_STD_HEAP
 }
 
 alloc_n :: ($T: type, count: uint, allocator: ^Allocator = ^DEFAULT_STD_HEAP_ALLOCATOR) -> []mut T {
-    mut mem : []T = cast(^T) allocator.allocate(count, @sizeof(T), @alignof(T))
+    mut mem : []mut T = cast(^T) allocator.allocate(count, @sizeof(T), @alignof(T))
     mem.length = cast count
     return mem
 }
 
-realloc_n :: (mut mem: []$T, count: uint, allocator: ^Allocator = ^DEFAULT_STD_HEAP_ALLOCATOR) -> []mut T {
+realloc_n :: (mut mem: []mut $T, count: uint, allocator: ^Allocator = ^DEFAULT_STD_HEAP_ALLOCATOR) -> []mut T {
     mem.data = cast allocator.reallocate(cast mem.data, count, @sizeof(T), @alignof(T))
     mem.length = cast count
     return mem

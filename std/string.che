@@ -46,8 +46,8 @@ impl String {
         return result
     }
 
-    from_raw_ptr :: (ptr: ^u8, cap: int) -> Self {
-        mut sl : []u8 = ptr
+    from_raw_ptr :: (ptr: ^mut u8, cap: int) -> Self {
+        mut sl : []mut u8 = ptr
         sl.length = cap
         return String(sl, 0, null)
     }
@@ -101,7 +101,7 @@ impl String {
         *data[i] = c
     }
 
-    reserve_more :: (&Self, amount: int) {
+    reserve_more :: (&mut Self, amount: int) {
         reserve(length + amount)
     }
 

@@ -74,7 +74,7 @@ impl Thread {
 
         if const @is_os("windows") {
             thread_func :: (data: ^void) -> u32 #stdcall {
-                thread_data := @cast(^ThreadData, data)
+                thread_data := @cast(^mut ThreadData, data)
                 current_thread_data = thread_data
                 thread_data.func(thread_data.user)
                 return 0
@@ -86,7 +86,7 @@ impl Thread {
         }
         if const @is_os("linux") {
             thread_func :: (data: ^void) -> ^void {
-                thread_data := @cast(^ThreadData, data)
+                thread_data := @cast(^mut ThreadData, data)
                 current_thread_data = thread_data
                 thread_data.func(thread_data.user)
                 return null
@@ -113,7 +113,7 @@ impl Thread {
 
         if const @is_os("windows") {
             thread_func :: (data: ^void) -> u32 #stdcall {
-                thread_data := @cast(^ThreadData, data)
+                thread_data := @cast(^mut ThreadData, data)
                 current_thread_data = thread_data
 
                 func := @cast(Fn(), thread_data.func)

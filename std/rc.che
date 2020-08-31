@@ -75,6 +75,11 @@ impl(T: type) Rc[T] {
         return &*value
     }
 
+    get_mut :: (&mut Self) -> &mut T {
+        @assert(value != null)
+        return &mut *value
+    }
+
     change_type :: (mut self: Self, $R: type) -> Rc[R] {
         mut result := Rc[R](self.data, null, cast drop_impl, owns_memory)
         if const @is_trait(T) and !@is_trait(R) {
