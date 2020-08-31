@@ -384,6 +384,12 @@ impl ThreadPool {
         data.mutex.release()
     }
 
+    enqueue_mut :: (&mut Self, function: fn(^mut $T), data_ptr: ^mut T) {
+        data.mutex.lock()
+        data.functions.push((@cast(fn(^void), function), @cast(^void, data_ptr)))
+        data.mutex.release()
+    }
+
     terminate :: (mut self: Self, empty_queue: bool) {
         self.data.empty_queue = empty_queue
         self.data.running = false

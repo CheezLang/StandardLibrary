@@ -56,7 +56,7 @@ impl Instrumentor {
         m : ^Mutex = if thread_safe {
             m := alloc(Mutex)
             *m = Mutex.new()
-            m
+            cast m
         } else {
             null
         }
@@ -174,7 +174,7 @@ impl Timer {
 }
 
 impl Drop for Timer {
-    drop :: (&Self) {
+    drop :: (&mut Self) {
         if !stopped then self.stop()
     }
 }

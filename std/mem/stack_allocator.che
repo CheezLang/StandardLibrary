@@ -15,7 +15,7 @@ StackAllocation :: struct {
 }
 
 impl Printable for StackAllocation {
-    print :: (&Self, str: &String, format: string) {
+    print :: (&Self, str: &mut String, format: string) {
         str.appendf("({}:{})", (offset, size))
     }
 }
@@ -28,7 +28,7 @@ StackAllocator :: struct {
 }
 
 impl Drop for StackAllocator {
-    drop :: (&Self) {
+    drop :: (&mut Self) {
         self.clear()
         parent.free(memory)
     }

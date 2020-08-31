@@ -13,11 +13,11 @@ MTwister :: struct {
 }
 
 impl PseudoRandomGen for MTwister {
-    next_u32 :: (&Self) -> u32 {
+    next_u32 :: (&mut Self) -> u32 {
         return self.next()
     }
 
-    next_double :: (&Self) -> double {
+    next_double :: (&mut Self) -> double {
         r := double(self.next())
         m := double(u32.max)
         return r / m
