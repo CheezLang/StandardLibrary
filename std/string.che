@@ -264,7 +264,7 @@ impl String {
                 })
             }
         } else {
-            args : [1]^Printable = [^arguments]
+            args : [1]^Printable = [cast(^T) ^arguments]
         }
         self.append_printables(format, args)
     }
