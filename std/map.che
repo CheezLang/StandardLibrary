@@ -31,7 +31,7 @@ impl(K: type, V: type) Drop for Map[K, V] {
 impl(K: type, V: type) Map[K, V] {
     new :: (allocator: ^mut Allocator = ^mut DEFAULT_STD_HEAP_ALLOCATOR) -> Self {
         if const !@type_has_trait(K, Equatable[K]) {
-            @static_assert(false, "Key of map must implment Equatable")
+            @static_assert(false, "Key of map must implement Equatable")
         }
         return Map[K, V](
             allocator   = allocator

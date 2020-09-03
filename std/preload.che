@@ -159,7 +159,13 @@ Equatable :: trait(T: type) {
 }
 
 impl Equatable[int] for int {
-    equal :: (&Self, other: &int) -> bool {
+    equal :: (&Self, other: &Self) -> bool {
+        return *self == *other
+    }
+}
+
+impl Equatable[u32] for u32 {
+    equal :: (&Self, other: &Self) -> bool {
         return *self == *other
     }
 }
@@ -305,7 +311,7 @@ impl(T: type) []mut T {
         return self
     }
 
-    reinterpret_cast :: (Self, $N: type) -> []mut N {
+    reinterpret_cast_mut :: (Self, $N: type) -> []mut N {
         // @static_assert(@sizeof(T) % @sizeof(N) == 0 or @sizof(N) % @sizeof(T) == 0)
         mut result : []N = []
         result.data = cast self.data

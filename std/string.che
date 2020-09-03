@@ -675,6 +675,10 @@ impl string {
             return Err()
         }
     }
+
+    from_cstring :: (str: ^char8) -> string {
+        return string(cast str, cast C.strlen(str))
+    }
 }
 
 impl Into[String] for string {

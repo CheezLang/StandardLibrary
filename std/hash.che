@@ -31,9 +31,23 @@ impl Hashable for string {
     }
 }
 
-impl Hashable for int {
+impl Hashable for u64 {
     hash :: (&Self) -> u64 {
-        return cast(u64) (*self * 123)
+        return *self * 0x123456789ABCDEF
+    }
+}
+
+impl Hashable for i64 {
+    hash :: (&Self) -> u64 {
+        u := u64(*self)
+        return u.hash()
+    }
+}
+
+impl Hashable for u32 {
+    hash :: (&Self) -> u64 {
+        u := u64(*self)
+        return u.hash()
     }
 }
 

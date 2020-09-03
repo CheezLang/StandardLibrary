@@ -1,0 +1,197 @@
+use import std.math
+use import std.printable
+use import std.string
+
+#export_scope
+
+Matrix4 :: struct(T: type) #copy(T) {
+    values : [16]T = default
+}
+
+impl(T: type) Matrix4[T] {
+    id :: () -> Self {
+        return Self([
+            1, 0, 0, 0
+            0, 1, 0, 0
+            0, 0, 1, 0
+            0, 0, 0, 1 
+        ])
+    }
+
+    from_translation :: (t: Vector3[T]) -> Self {
+        return Self([
+            1, 0, 0, t.x
+            0, 1, 0, t.y
+            0, 0, 1, t.z
+            0, 0, 0, 1
+        ])
+    }
+
+    from_scales :: (s: T) -> Self {
+        return Self([
+            s, 0, 0, 0
+            0, s, 0, 0
+            0, 0, s, 0
+            0, 0, 0, 1
+        ])
+    }
+
+    from_scale :: (s: Vector3[T]) -> Self {
+        return Self([
+            s.x, 0, 0, 0
+            0, s.y, 0, 0
+            0, 0, s.z, 0
+            0, 0, 0, 1
+        ])
+    }
+
+    from_rotation_x :: (angle: T) -> Self {
+        c := cosf(angle)
+        s := sinf(angle)
+        return Self([
+            1, 0, 0, 0
+            0, c,-s, 0
+            0, s, c, 0
+            0, 0, 0, 1
+        ])
+    }
+
+    from_rotation_y :: (angle: T) -> Self {
+        c := cosf(angle)
+        s := sinf(angle)
+        return Self([
+            c, 0, s, 0
+            0, 1, 0, 0
+           -s, 0, c, 0
+            0, 0, 0, 1
+        ])
+    }
+
+    from_rotation_z :: (angle: T) -> Self {
+        c := cosf(angle)
+        s := sinf(angle)
+        return Self([
+            c,-s, 0, 0
+            s, c, 0, 0
+            0, 0, 1, 0
+            0, 0, 0, 1
+        ])
+    }
+
+    orthographic :: (left: T, right: T, bottom: T, top: T, near: T, far: T) -> Self {
+        width  := right - left
+        height := top - bottom
+        depth  := far - near
+
+        return Self([
+            2.0f / width, 0             , 0             , -(right + left) / width
+            0           , 2.0f / height , 0             , -(top + bottom) / height
+            0           , 0             , -2.0f / depth , -(far + near)   / depth 
+            0           , 0             , 0             , 1
+        ])
+    }
+
+    // invert_transform :: (Self) -> Self {
+    //     return Self([
+    //         1 / values[0]   , 0             , 0                 , -values[3]
+    //         0               , 1 / values[5] , 0                 , -values[7]
+    //         0               , 0             , 1 / values[10]    , -values[11]
+    //         0               , 0             , 0                 , 1
+    //     ])
+    // }
+
+    // pretend this matrix is an orthographic matrix and invert it
+    invert_orthographic :: (&Self) -> Self {
+        return Self([
+            1 / *values[0]  , 0             , 0                 , -*values[3]
+            0               , 1 / *values[5], 0                 , -*values[7]
+            0               , 0             , 1 / *values[10]   , -*values[11]
+            0               , 0             , 0                 , 1
+        ])
+    }
+
+    orthographic_inverse :: (left: T, right: T, bottom: T, top: T, near: T, far: T) -> Self {
+        width  := right - left
+        height := top - bottom
+        depth  := far - near
+
+        return Self([
+            width / 2.0f, 0             , 0             , (right + left) / width
+            0           , height / 2.0f , 0             , (top + bottom) / height
+            0           , 0             , depth / -2.0f , (far + near)   / depth 
+            0           , 0             , 0             , 1
+        ])
+    }
+
+    data :: (&Self) -> ^T {
+        return values.data
+    }
+
+    muls :: (&Self, s: T) #operator("*=") {
+        values : []T = values
+        for(by_ref=true) values {
+            *it *= s
+        }
+    }
+
+    mulm :: (&Self, other: &Matrix4[T]) #operator("*=") {
+        // copy of own values
+        a := values
+        b : []T = other.values
+        for c in 0..4 {
+            for r in 0..4 {
+                sum : T = 0
+                for i in 0..4 {
+                    sum += *a[i + r * 4] * *b[c + i * 4]
+                }
+                *values[c + r * 4] = sum
+            }
+        }
+    }
+
+    mulmm :: (ma: Matrix4[T], mb: Matrix4[T]) -> Matrix4[T] #operator("*") {
+        a : []T = ma.values
+        b : []T = mb.values
+        result := Matrix4[T]()
+        for c in 0..4 {
+            for r in 0..4 {
+                sum : T = 0
+                for i in 0..4 {
+                    sum += *a[i + r * 4] * *b[c + i * 4]
+                }
+                *result.values[c + r * 4] = sum
+            }
+        }
+        return result
+    }
+
+    mulmv :: (ma: &Matrix4[T], v: Vector3[T]) -> Vector3[T] #operator("*") {
+        a : []T = ma.values
+        return Vector3[T](
+            x = *a[0] * v.x + *a[1] * v.y + *a[2]  * v.z + *a[3]
+            y = *a[4] * v.x + *a[5] * v.y + *a[6]  * v.z + *a[7]
+            z = *a[8] * v.x + *a[9] * v.y + *a[10] * v.z + *a[11]
+        )
+    }
+
+    mulv :: (ma: &Matrix4[T], v: Vector3[T], w: T = 1) -> Vector3[T] #operator("*") {
+        a : []T = ma.values
+        return Vector3[T](
+            x = *a[0] * v.x + *a[1] * v.y + *a[2]  * v.z + *a[3]  * w
+            y = *a[4] * v.x + *a[5] * v.y + *a[6]  * v.z + *a[7]  * w
+            z = *a[8] * v.x + *a[9] * v.y + *a[10] * v.z + *a[11] * w
+        )
+    }
+}
+
+impl(T: type) Printable for Matrix4[T] {
+    print :: (&Self, str: &String, format: string) {
+        for r in 0..4 {
+            if r > 0 then str.append_string("`n")
+            for c in 0..4 {
+                if c > 0 then str.append_string(" | ")
+                str.appendf("{}", *values[c + r * 4])
+            }
+        }
+    }
+}
