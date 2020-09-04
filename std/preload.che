@@ -657,6 +657,7 @@ TypeInfoEnum :: struct TypeInfo {
     name     : string
     members  : []TypeInfoEnumMember
     tag_type : ^TypeInfo
+    is_flags : bool
 }
 __ti_TypeInfoEnum := @type_info(TypeInfoEnum)
 

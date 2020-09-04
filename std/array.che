@@ -210,6 +210,46 @@ impl(T: type) Array[T] {
         return self.sliceFL(0, len)
     }
 
+    // get_range :: (&Self, range: Range[int]) -> []T #operator("[]") {
+    //     data := int(self.bytes.data) + range.start
+    //     length := range.end - range.start
+    //     return string(cast data, length)
+    // }
+
+    // get_range_inclusive :: (&Self, range: RangeInclusive[int]) -> []T #operator("[]") {
+    //     data := int(self.bytes.data) + range.start
+    //     length := range.end - range.start + 1
+    //     return string(cast data, length)
+    // }
+
+    // get_range_to :: (&Self, range: RangeTo[int]) -> []T #operator("[]") {
+    //     @assert(range.end >= 0 and range.end <= self.bytes.length)
+    //     data := int(self.bytes.data)
+    //     length := range.end
+    //     return string(cast data, length)
+    // }
+
+    // get_range_to_incl :: (&Self, range: RangeToInclusive[int]) -> []T #operator("[]") {
+    //     @assert(range.end >= 0 and range.end < self.bytes.length)
+    //     data := int(self.bytes.data)
+    //     length := range.end + 1
+    //     return string(cast data, length)
+    // }
+
+    // get_range_from :: (&Self, range: RangeFrom[int]) -> []T #operator("[]") {
+    //     if !(range.start >= 0 and range.start <= self.bytes.length) {
+    //         _C.printf("%lld, %lld`n", range.start, self.bytes.length)
+    //     }
+    //     @assert(range.start >= 0 and range.start <= self.bytes.length)
+    //     data := int(self.bytes.data) + range.start
+    //     length := self.bytes.length - range.start
+    //     return string(cast data, length)
+    // }
+
+    get_range_full :: (&Self, range: RangeFull) -> []T #operator("[]") {
+        return self.slice()
+    }
+
     sort :: (&mut Self, cmp: fn (&T, &T) -> int) -> &Self {
         quick_sort(0, length - 1, cmp)
 

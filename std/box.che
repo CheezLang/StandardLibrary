@@ -41,6 +41,6 @@ impl(T: type) Box[T] {
 impl(T: type) Drop for Box[T] {
     drop :: (&Self) {
         free(value)
-        value = null
+        @cast(&mut Self, self).value = null
     }
 }

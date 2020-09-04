@@ -318,28 +318,58 @@ format_any_into_string :: (result: &mut String, data: ^void, typ: ^TypeInfo, for
                 }
                 result += ')'
             } else {
-                tag := match tenum.tag_type.size {
-                    1  -> int(*cast(^u8) ptr)
-                    2  -> int(*cast(^u16) ptr)
-                    4  -> int(*cast(^u32) ptr)
-                    8  -> int(*cast(^u64) ptr)
+                tag_type := cast(^TypeInfoInt) tenum.tag_type
+
+                tag := match tag_type.signed, tag_type.size {
+                    false, 1  -> int(*cast(^u8) ptr)
+                    false, 2  -> int(*cast(^u16) ptr)
+                    false, 4  -> int(*cast(^u32) ptr)
+                    false, 8  -> int(*cast(^u64) ptr)
+                    true, 1  -> int(*cast(^i8) ptr)
+                    true, 2  -> int(*cast(^i16) ptr)
+                    true, 4  -> int(*cast(^i32) ptr)
+                    true, 8  -> int(*cast(^i64) ptr)
                     $_ -> {
                         @panic("Unsupported tag size")
                         0
                     }
                 }
 
-                for(by_ref=true) mem in tenum.members {
-                    if mem.tag == tag {
-                        result += mem.name
-
-                        if mem.typ != null {
-                            mem_val_ptr := pointer_add(ptr, tenum.tag_type.size)
-
-                            result += "("
-                            format_any_into_string(result, mem_val_ptr, mem.typ, format, use_printable_if_possible)
-                            result += ")"
+                if tenum.is_flags {
+                    result += "{"
+                    mut comma := false
+                    for(by_ref=false) mem in tenum.members {
+                        if mem.tag != 0 and @bin_and(mem.tag, tag) == mem.tag {
+                            if comma {
+                                result += ", "
+                            }
+                            result += mem.name
+                            comma = true
                         }
+                    }
+                    result += "}"
+                } else {
+                    mut found_member := false
+
+                    for(by_ref=false) mem in tenum.members {
+                        if mem.tag == tag {
+                            result += mem.name
+
+                            if mem.typ != null {
+                                mem_val_ptr := pointer_add(ptr, tenum.tag_type.size)
+
+                                result += "("
+                                format_any_into_string(result, mem_val_ptr, mem.typ, format, use_printable_if_possible)
+                                result += ")"
+                            }
+
+                            found_member = true
+                            break
+                        }
+                    }
+
+                    if !found_member {
+                        format_into(result, "<{}>", [tag])
                     }
                 }
             }
