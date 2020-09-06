@@ -74,6 +74,11 @@ set_console_color :: (foreground: ConsoleColor, background: ConsoleColor) {
     }
 
     if const @is_os("linux") {
+        if C.isatty(1) == 0 {
+            // not connected to a terminal
+            return
+        }
+
         set_color_seq := [ 0x1B, 0 ]
 
         fore := @bin_and(int(foreground), 0b0111)
@@ -127,6 +132,11 @@ set_console_foreground_color :: (foreground: ConsoleColor) {
     }
 
     if const @is_os("linux") {
+        if C.isatty(1) == 0 {
+            // not connected to a terminal
+            return
+        }
+
         set_color_seq := [ 0x1B, 0 ]
 
         fore := @bin_and(int(foreground), 0b0111)

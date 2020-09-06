@@ -26,7 +26,7 @@ if const @is_os("linux") {
         loop Fiber.yield()
     }
 
-    __current_fiber : ^Fiber = null
+    __current_fiber : ^Fiber = null #thread_local
 }
 
 if const @is_os("windows") {

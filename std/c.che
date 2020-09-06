@@ -6,9 +6,9 @@ FILE :: struct {
 
 __acrt_iob_func :: (_: u32) -> ^FILE;
 
-stdin  : ^FILE = __acrt_iob_func(1)
+stdin  : ^FILE = __acrt_iob_func(0)
 stdout : ^FILE = __acrt_iob_func(1)
-stderr : ^FILE = __acrt_iob_func(1)
+stderr : ^FILE = __acrt_iob_func(2)
 
 getchar   :: () -> i32;
 gets      :: (string: c_string) -> c_string;
@@ -62,3 +62,4 @@ fwrite      :: (buffer: ^void, size: size_t, count: size_t, _Stream: ^FILE) -> s
 fprintf     :: (_Stream: ^FILE, format: c_string) #varargs;
 
 system      :: (command: c_string) -> i32;
+isatty      :: (fildes: i32) -> i32;
