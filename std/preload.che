@@ -159,8 +159,20 @@ Equatable :: trait(T: type) {
 }
 
 impl Equatable[int] for int {
-    equal :: (&Self, other: &int) -> bool {
+    equal :: (&Self, other: &Self) -> bool {
         return *self == *other
+    }
+}
+
+impl Equatable[u32] for u32 {
+    equal :: (&Self, other: &Self) -> bool {
+        return *self == *other
+    }
+}
+
+impl Equatable[TypeId] for TypeId {
+    equal :: (&Self, other: &TypeId) -> bool {
+        return self.ptr == other.ptr
     }
 }
 
@@ -208,7 +220,7 @@ impl(T: type) Range[T] {
 }
 
 impl string {
-    get_index :: (Self, index: int) -> &u8 #operator("[]") {
+    get_index :: (Self, index: int) -> &mut u8 #operator("[]") {
         return self.bytes[index]
     }
 
@@ -253,6 +265,61 @@ impl string {
     }
 }
 
+impl(T: type) []mut T {
+    get_index :: (Self, index: int) -> &mut T #operator("[]") {
+        return &*pointer_add_sized(self.data, index)
+        // return cast(^T) int(self.data) + index * @sizeof(T)
+    }
+
+    get_range :: (Self, range: Range[int]) -> []mut T #operator("[]") {
+        mut result := self
+        result.data = cast int(result.data) + range.start * @sizeof(T)
+        result.length = range.end - range.start
+        return result
+    }
+
+    get_range_inclusive :: (Self, range: RangeInclusive[int]) -> []mut T #operator("[]") {
+        mut result := self
+        result.data = cast int(result.data) + range.start * @sizeof(T)
+        result.length = range.end - range.start + 1
+        return result
+    }
+
+    get_range_to :: (Self, range: RangeTo[int]) -> []mut T #operator("[]") {
+        @assert(range.end >= 0 and range.end <= self.length)
+        mut result := self
+        result.length = range.end
+        return result
+    }
+
+    get_range_to_incl :: (Self, range: RangeToInclusive[int]) -> []mut T #operator("[]") {
+        @assert(range.end >= 0 and range.end < self.length)
+        mut result := self
+        result.length = range.end + 1
+        return result
+    }
+
+    get_range_from :: (Self, range: RangeFrom[int]) -> []mut T #operator("[]") {
+        @assert(range.start >= 0 and range.start <= self.length)
+        mut result := self
+        result.data = cast int(result.data) + range.start * @sizeof(T)
+        result.length = self.length - range.start
+        return result
+    }
+
+    get_range_full :: (Self, range: RangeFull) -> []mut T #operator("[]") {
+        return self
+    }
+
+    reinterpret_cast_mut :: (Self, $N: type) -> []mut N {
+        // @static_assert(@sizeof(T) % @sizeof(N) == 0 or @sizof(N) % @sizeof(T) == 0)
+        mut result : []N = []
+        result.data = cast self.data
+        result.length = self.length * @sizeof(T) / @sizeof(N)
+        return result
+    }
+}
+
 impl(T: type) []T {
     get_index :: (Self, index: int) -> &T #operator("[]") {
         return &*pointer_add_sized(self.data, index)
@@ -260,14 +327,14 @@ impl(T: type) []T {
     }
 
     get_range :: (Self, range: Range[int]) -> []T #operator("[]") {
-        result := self
+        mut result := self
         result.data = cast int(result.data) + range.start * @sizeof(T)
         result.length = range.end - range.start
         return result
     }
 
     get_range_inclusive :: (Self, range: RangeInclusive[int]) -> []T #operator("[]") {
-        result := self
+        mut result := self
         result.data = cast int(result.data) + range.start * @sizeof(T)
         result.length = range.end - range.start + 1
         return result
@@ -275,21 +342,21 @@ impl(T: type) []T {
 
     get_range_to :: (Self, range: RangeTo[int]) -> []T #operator("[]") {
         @assert(range.end >= 0 and range.end <= self.length)
-        result := self
+        mut result := self
         result.length = range.end
         return result
     }
 
     get_range_to_incl :: (Self, range: RangeToInclusive[int]) -> []T #operator("[]") {
         @assert(range.end >= 0 and range.end < self.length)
-        result := self
+        mut result := self
         result.length = range.end + 1
         return result
     }
 
     get_range_from :: (Self, range: RangeFrom[int]) -> []T #operator("[]") {
         @assert(range.start >= 0 and range.start <= self.length)
-        result := self
+        mut result := self
         result.data = cast int(result.data) + range.start * @sizeof(T)
         result.length = self.length - range.start
         return result
@@ -298,52 +365,65 @@ impl(T: type) []T {
     get_range_full :: (Self, range: RangeFull) -> []T #operator("[]") {
         return self
     }
+
+    reinterpret_cast :: (Self, $N: type) -> []N {
+        // @static_assert(@sizeof(T) % @sizeof(N) == 0 or @sizof(N) % @sizeof(T) == 0)
+        mut result : []N = []
+        result.data = cast self.data
+        result.length = self.length * @sizeof(T) / @sizeof(N)
+        return result
+    }
 }
 
 impl(T: type, Size: int) [Size]T {
-    get_index :: (&Self, index: int) -> &T #operator("[]") {
-        return &*pointer_add_sized(self.data, index)
+    get_index :: (&Self, index: int) -> &mut T #operator("[]") {
+        return &mut *pointer_add_sized(self.data, index)
         // return *cast(^T) int(self.data) + index * @sizeof(T)
     }
 
-    get_range :: (&Self, range: Range[int]) -> []T #operator("[]") {
-        result : []T = *self
+    get_index_mut :: (&mut Self, index: int) -> &mut T #operator("[]") {
+        return &mut *pointer_add_sized(self.data, index)
+        // return *cast(^T) int(self.data) + index * @sizeof(T)
+    }
+
+    get_range :: (&Self, range: Range[int]) -> []mut T #operator("[]") {
+        mut result : []mut T = *self
         result.data = cast int(result.data) + range.start * @sizeof(T)
         result.length = range.end - range.start
         return result
     }
 
-    get_range_inclusive :: (&Self, range: RangeInclusive[int]) -> []T #operator("[]") {
-        result : []T = *self
+    get_range_inclusive :: (&Self, range: RangeInclusive[int]) -> []mut T #operator("[]") {
+        mut result : []mut T = *self
         result.data = cast int(result.data) + range.start * @sizeof(T)
         result.length = range.end - range.start + 1
         return result
     }
 
-    get_range_to :: (&Self, range: RangeTo[int]) -> []T #operator("[]") {
+    get_range_to :: (&Self, range: RangeTo[int]) -> []mut T #operator("[]") {
         @assert(range.end >= 0 and range.end <= self.length)
-        result : []T = *self
+        mut result : []mut T = *self
         result.length = range.end
         return result
     }
 
-    get_range_to_incl :: (&Self, range: RangeToInclusive[int]) -> []T #operator("[]") {
+    get_range_to_incl :: (&Self, range: RangeToInclusive[int]) -> []mut T #operator("[]") {
         @assert(range.end >= 0 and range.end < self.length)
-        result : []T = *self
+        mut result : []mut T = *self
         result.length = range.end + 1
         return result
     }
 
-    get_range_from :: (&Self, range: RangeFrom[int]) -> []T #operator("[]") {
+    get_range_from :: (&Self, range: RangeFrom[int]) -> []mut T #operator("[]") {
         @assert(range.start >= 0 and range.start <= self.length)
-        result : []T = *self
+        mut result : []mut T = *self
         result.data = cast int(result.data) + range.start * @sizeof(T)
         result.length = self.length - range.start
         return result
     }
 
-    get_range_full :: (&Self, range: RangeFull) -> []T #operator("[]") {
-        return cast([]T) *self
+    get_range_full :: (&Self, range: RangeFull) -> []mut T #operator("[]") {
+        return cast([]mut T) *self
     }
 }
 
@@ -354,7 +434,7 @@ for_extension_range :: (r: Range[$T], code: Code) #for {
 
     compare :: @code(if rev then it > r.end else it < r.end)
 
-    while (it, it_index) := (r.start, 0),
+    while mut (it, it_index) := (r.start, 0),
             @insert(compare, link=[it], _break={}, _continue={}),
             it_index += 1; it += inc {
         @insert(code, _break=break, _continue=continue)
@@ -369,7 +449,7 @@ for_extension_range_inclusive :: (r: RangeInclusive[$T], code: Code, reverse: bo
 
     compare :: @code(if const reverse then it >= end else it <= end)
 
-    while (it, it_index) := (start, 0),
+    while mut (it, it_index) := (start, 0),
             @insert(compare, link=[it], _break={}, _continue={}),
             it_index += 1; it += inc {
         @insert(code, _break=break, _continue=continue)
@@ -377,13 +457,26 @@ for_extension_range_inclusive :: (r: RangeInclusive[$T], code: Code, reverse: bo
 }
 
 for_extension_range_from :: (r: RangeFrom[$T], code: Code) #for {
-    while (it, it_index) := (r.start, 0), true, it_index += 1; it += 1 {
+    while mut (it, it_index) := (r.start, 0), true, it_index += 1; it += 1 {
         @insert(code, _break=break, _continue=continue)
     }
 }
 
 for_extension_slice :: (arr: []$T, code: Code, reverse: bool = false, by_ref: bool = false) #for {
-    while it_index := 0, it_index < arr.length, it_index += 1 {
+    while mut it_index := 0, it_index < arr.length, it_index += 1 {
+        if const reverse {
+            it_index_rev := arr.length - it_index - 1
+            it := if const by_ref then arr[it_index_rev] else *arr[it_index_rev]
+            @insert(code, link=[it_index_rev], _break=break, _continue=continue)
+        } else {
+            it := if const by_ref then arr[it_index] else *arr[it_index]
+            @insert(code, _break=break, _continue=continue)
+        }
+    }
+}
+
+for_extension_slice_mut :: (arr: []mut $T, code: Code, reverse: bool = false, by_ref: bool = false) #for {
+    while mut it_index := 0, it_index < arr.length, it_index += 1 {
         if const reverse {
             it_index_rev := arr.length - it_index - 1
             it := if const by_ref then arr[it_index_rev] else *arr[it_index_rev]
@@ -482,6 +575,11 @@ TypeInfo :: trait {
     impl_funcs  : []TypeInfoImplFunction
 }
 
+TypeId :: struct #copy {
+    ptr: ^TypeInfo
+}
+__ti_TypeId := @type_info(TypeId)
+
 TypeInfoVoid :: struct TypeInfo {}
 __ti_TypeInfoVoid := @type_info(TypeInfoVoid)
 TypeInfoType :: struct TypeInfo {}
@@ -559,6 +657,7 @@ TypeInfoEnum :: struct TypeInfo {
     name     : string
     members  : []TypeInfoEnumMember
     tag_type : ^TypeInfo
+    is_flags : bool
 }
 __ti_TypeInfoEnum := @type_info(TypeInfoEnum)
 
@@ -609,8 +708,17 @@ TypeInfoAttribute :: struct #copy {
 }
 
 // 
+impl TypeId {
+    type_info :: (Self) -> ^TypeInfo {
+        return self.ptr
+    }
+}
 
 impl TypeInfo {
+    id :: (&Self) -> TypeId {
+        return TypeId(^*self)
+    }
+
     get_trait_impl :: (&Self, $T: type) -> ^TypeInfoTraitImpl {
         ti := @type_info(T)
         for(by_ref=true) self.traits {

@@ -6,7 +6,7 @@ C :: import std.c
 #export_scope
 
 RingQueue :: struct(T: type) {
-    data        : ^T
+    data        : ^mut T
     capacity    : int
     first       : int
     last        : int
@@ -14,7 +14,7 @@ RingQueue :: struct(T: type) {
 }
 
 impl(T: type) RingQueue[T] {
-    new :: (init_size: int = 10, allocator: ^Allocator = null) -> Self {
+    new :: (init_size: int = 10, mut allocator: ^Allocator = null) -> Self {
         if allocator == null {
             allocator = ^DEFAULT_STD_HEAP_ALLOCATOR
         }
@@ -43,7 +43,7 @@ impl(T: type) RingQueue[T] {
         return (last - first + capacity) % capacity
     }
 
-    reserve :: (&Self, size: int) {
+    reserve :: (&mut Self, size: int) {
         if capacity > size {
             return
         }
@@ -77,7 +77,7 @@ impl(T: type) RingQueue[T] {
 
     }
 
-    push :: (&Self, val: T) {
+    push :: (&mut Self, val: T) {
         if get_length() == capacity - 1 {
             reserve(capacity * 2)
         }
@@ -86,7 +86,7 @@ impl(T: type) RingQueue[T] {
         last = (last + 1) % capacity
     }
 
-    pop :: (&Self) -> T {
+    pop :: (&mut Self) -> T {
         @assert(first != last)
 
         val := data[first]
@@ -96,7 +96,7 @@ impl(T: type) RingQueue[T] {
         return val
     }
 
-    at :: (&Self, index: int) -> &T #operator("[]") {
+    at :: (&Self, mut index: int) -> &T #operator("[]") {
         @assert(index >= 0 and index < count())
         index = (first + index) % capacity
         return &data[index]
@@ -124,7 +124,7 @@ impl(T: type) Drop for RingQueue[T] {
 }
 
 for_extension_ring_queue_T :: (que: &RingQueue[$T], code: Code, reverse: bool = false, by_ref: bool = true) #for {
-    while it_index := 0, it_index < que.count(), it_index += 1 {
+    while mut it_index := 0, it_index < que.count(), it_index += 1 {
         if const reverse {
             it_index_rev := que.count() - it_index - 1
             if const by_ref {

@@ -31,11 +31,16 @@ impl(T: type) Box[T] {
         @assert(value != null)
         return &*value
     }
+
+    get_mut :: (&mut Self) -> &mut T {
+        @assert(value != null)
+        return &mut *value
+    }
 }
 
 impl(T: type) Drop for Box[T] {
     drop :: (&Self) {
         free(value)
-        value = null
+        @cast(&mut Self, self).value = null
     }
 }

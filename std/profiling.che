@@ -47,7 +47,7 @@ Instrumentor :: struct {
     mutex           : ^Mutex
 }
 
-global_instrumantor : ^Instrumentor = null
+mut global_instrumantor : ^mut Instrumentor = null
 
 impl Instrumentor {
     init :: (thread_safe: bool) {
@@ -56,7 +56,7 @@ impl Instrumentor {
         m : ^Mutex = if thread_safe {
             m := alloc(Mutex)
             *m = Mutex.new()
-            m
+            cast m
         } else {
             null
         }
@@ -69,7 +69,7 @@ impl Instrumentor {
         return global_instrumantor
     }
 
-    begin_session :: (&Self, name: string, filepath: string = "results.json") {
+    begin_session :: (&mut Self, name: string, filepath: string = "results.json") {
         current_session = name
         filepath_c := filepath.to_cstring()
         defer free(filepath_c)
@@ -83,7 +83,7 @@ impl Instrumentor {
         write_header()
     }
 
-    end_session :: (&Self) {
+    end_session :: (&mut Self) {
         write_footer()
         fclose(output_file)
 
@@ -102,7 +102,7 @@ impl Instrumentor {
         fflush(output_file)
     }
 
-    write_profile :: (&Self, result: ProfileResult) {
+    write_profile :: (&mut Self, result: ProfileResult) {
         if mutex != null then mutex.lock()
         defer if mutex != null then mutex.release() else {}
         profile_count += 1
@@ -122,7 +122,7 @@ impl Instrumentor {
         fflush(output_file)
     }
 
-    write_profile_async :: (&Self, name: string, id: int, time: int, ph: string, thread_id: int) {
+    write_profile_async :: (&mut Self, name: string, id: int, time: int, ph: string, thread_id: int) {
         if mutex != null then mutex.lock()
         defer if mutex != null then mutex.release() else {}
         profile_count += 1
@@ -156,25 +156,25 @@ impl Timer {
         return Timer(name, get_time_microseconds())
     }
 
-    restart :: (&Self) {
+    restart :: (&mut Self) {
         start = get_time_microseconds()
         stopped = false
     }
 
-    stop :: (&Self) {
+    stop :: (&mut Self) {
         end := get_time_microseconds()
         dur := end - start
 
         // printfln("{}: {}ms", (name, double(dur) * 0.001))
         thread_id := Thread.current().id
-        Instrumentor.get().write_profile(ProfileResult(name, start, end, thread_id))
+        Instrumentor.get().write_profile(ProfileResult(name, start, end, cast thread_id))
 
         stopped = true
     }
 }
 
 impl Drop for Timer {
-    drop :: (&Self) {
+    drop :: (&mut Self) {
         if !stopped then self.stop()
     }
 }

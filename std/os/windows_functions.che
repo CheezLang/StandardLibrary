@@ -96,7 +96,8 @@ GetFullPathNameW :: (lpFileName: ^u16, nBufferLength: DWORD, lpBuffer: c_string,
 WriteConsoleW    :: (hConsoleOutput: HANDLE, lpBuffer: ^void, nNumberOfBytesToWrite: DWORD, lpNumberOfCharsWritten: ^DWORD, lpOverlapped: ^void) -> BOOL #stdcall;
 GetConsoleMode   :: (hConsoleHandle: HANDLE, lpMode: ^DWORD) -> BOOL #stdcall;
 SetConsoleTextAttribute :: (hConsoleOutput: HANDLE, wAttributes: WORD) -> BOOL #stdcall;
-
+SetConsoleMode   :: (hConsoleHandle: HANDLE, dwMode: DWORD) -> BOOL #stdcall;
+FlushConsoleInputBuffer ::(hConsoleInput: HANDLE) -> BOOL #stdcall;
 // window stuff
 SetWindowTextA     :: (hWnd: HWND, lpString: c_string) -> BOOL #stdcall;
 SetWindowTextW     :: (hWnd: HWND, lpString: ^u16) -> BOOL #stdcall;

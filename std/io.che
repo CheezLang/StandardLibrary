@@ -58,7 +58,7 @@ set_console_color :: (foreground: ConsoleColor, background: ConsoleColor) {
     if const @is_os("windows") {
         fg := u16(foreground)
         bg := u16(background)
-        attributes := 0u16
+        mut attributes := 0u16
 
         if @bin_and(fg, u16(ConsoleColor.Red))    != 0 { attributes = @bin_or(attributes, FOREGROUND_RED) }
         if @bin_and(fg, u16(ConsoleColor.Green))  != 0 { attributes = @bin_or(attributes, FOREGROUND_GREEN) }
@@ -121,7 +121,7 @@ set_console_color :: (foreground: ConsoleColor, background: ConsoleColor) {
 set_console_foreground_color :: (foreground: ConsoleColor) {
     if const @is_os("windows") {
         fg := u16(foreground)
-        attributes := 0u16
+        mut attributes := 0u16
 
         if @bin_and(fg, u16(ConsoleColor.Red))    != 0 { attributes = @bin_or(attributes, FOREGROUND_RED) }
         if @bin_and(fg, u16(ConsoleColor.Green))  != 0 { attributes = @bin_or(attributes, FOREGROUND_GREEN) }

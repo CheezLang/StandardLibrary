@@ -9,15 +9,15 @@ RcData :: struct {
 }
 
 Rc :: struct(T: type) {
-    data        : ^RcData
-    value       : ^T
+    data        : ^mut RcData
+    value       : ^mut T
     drop_impl   : fn(^T)
     owns_memory : bool
 }
 
 Ref :: struct(T: type) {
-    data        : ^RcData
-    value       : ^T
+    data        : ^mut RcData
+    value       : ^mut T
     owns_memory : bool
 }
 
@@ -50,7 +50,7 @@ impl(T: type) Rc[T] {
         return Rc[T](data, cast ptr, drop_impl, true)
     }
 
-    borrow :: (&Self) -> Ref[T] {
+    borrow :: (&mut Self) -> Ref[T] {
         data.internal_count += 1
         return Ref[T](data, value, owns_memory)
     }
@@ -75,17 +75,22 @@ impl(T: type) Rc[T] {
         return &*value
     }
 
-    change_type :: (Self, $R: type) -> Rc[R] {
-        result := Rc[R](data, null, cast drop_impl, owns_memory)
+    get_mut :: (&mut Self) -> &mut T {
+        @assert(value != null)
+        return &mut *value
+    }
+
+    change_type :: (mut self: Self, $R: type) -> Rc[R] {
+        mut result := Rc[R](self.data, null, cast drop_impl, owns_memory)
         if const @is_trait(T) and !@is_trait(R) {
             // cast from trait ptr to non trait ptr
-            result.value = cast @ptr_of_trait(value)
+            result.value = cast @ptr_of_trait(self.value)
         } else {
-            result.value = cast value
+            result.value = cast self.value
         }
 
-        data = null
-        value = null
+        self.data = null
+        self.value = null
         return result
     }
 }

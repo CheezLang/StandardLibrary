@@ -1,15 +1,15 @@
 #export_scope
 
 Hashable :: trait {
-    hash :: (&Self) -> uint;
+    hash :: (&Self) -> u64;
 }
 
 // TODO: move to string.che
 impl Hashable for c_string {
-    hash :: (&Self) -> uint {
-        h : u32 = 2166136261
+    hash :: (&Self) -> u64 {
+        mut h : u32 = 2166136261
 
-        while i := 0, self[i] != '`0', i += 1 {
+        while mut i := 0, self[i] != '`0', i += 1 {
             h += cast(u32) self[i] // TODO: change to xor
             h *= 16777619
         }
@@ -19,8 +19,8 @@ impl Hashable for c_string {
 }
 
 impl Hashable for string {
-    hash :: (&Self) -> uint {
-        h: u32 = 2166136261
+    hash :: (&Self) -> u64 {
+        mut h : u32 = 2166136261
 
         for i in 0..self.bytes.length {
             h += u32(*self[i])
@@ -31,8 +31,29 @@ impl Hashable for string {
     }
 }
 
-impl Hashable for int {
-    hash :: (&Self) -> uint {
-        return cast(uint) (*self * 123)
+impl Hashable for u64 {
+    hash :: (&Self) -> u64 {
+        return *self * 0x123456789ABCDEF
+    }
+}
+
+impl Hashable for i64 {
+    hash :: (&Self) -> u64 {
+        u := u64(*self)
+        return u.hash()
+    }
+}
+
+impl Hashable for u32 {
+    hash :: (&Self) -> u64 {
+        u := u64(*self)
+        return u.hash()
+    }
+}
+
+impl Hashable for TypeId {
+    hash :: (&Self) -> u64 {
+        ptr := u64(Traits.destructure(self.ptr).ptr)
+        return @bin_xor(ptr * 987654321, 0x15af_86e2_8b57_d91b)
     }
 }

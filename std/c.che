@@ -23,7 +23,8 @@ strcmp    :: (a: c_string, b: c_string) -> i32;
 strlen    :: (str: c_string) -> u64;
 strncmp   :: (a: c_string, b: c_string, count: u64) -> i32;
 strtod    :: (str: c_string, endptr: ^^char8) -> double;
-strtol    :: (str: c_string, endptr: ^^char8, base: i32) -> int;
+// strtol    :: (str: c_string, endptr: ^^char8, base: i32) -> i32;
+strtoll   :: (str: c_string, endptr: ^^char8, base: i64) -> i64;
 time      :: (timer: ^void) -> u32;
 _fullpath :: (absPath: ^char8, relPath: ^char8, maxLength: int) -> ^char8;
 
@@ -63,3 +64,4 @@ fprintf     :: (_Stream: ^FILE, format: c_string) #varargs;
 
 system      :: (command: c_string) -> i32;
 isatty      :: (fildes: i32) -> i32;
+exit        :: (code: i32) -> void;

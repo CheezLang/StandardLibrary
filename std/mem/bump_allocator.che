@@ -37,11 +37,11 @@ impl BumpAllocator {
     dump :: (&Self, dump_buckets: bool = false) {
         io.printfln("BumpAllocator ({} buckets)", buckets.length)
         for i in 0..buckets.length {
-            bucket : &BumpBucket = buckets[i]
+            bucket : &mut BumpBucket = buckets[i]
 
             io.printfln("  BumpBucket {}: {}/{} bytes", (i, bucket.filled, bucket.memory.length))
             if dump_buckets {
-                current : uint = 0
+                mut current : uint = 0
 
                 while current < bucket.filled {
                     len := *cast(^uint)util.pointer_add(bucket.memory.data, cast(int)current)
@@ -62,27 +62,27 @@ impl BumpAllocator {
 }
 
 impl Allocator for BumpAllocator {
-    allocate :: (&Self, count: u64, elementSize: u64, alignment: u64) -> ^void {
+    allocate :: (&Self, count: u64, elementSize: u64, mut alignment: u64) -> ^void {
         required_size := count * elementSize + 8
         if alignment < 8 {
             alignment = 8
         }
 
         // find bucket with enough room for required size
-        free_bucket : ^BumpBucket = if buckets.count() > 0 and buckets.peek_last().can_store(required_size, alignment) {
-            ^*buckets.peek_last()
+        mut free_bucket : ^mut BumpBucket = if buckets.count() > 0 and buckets.peek_last().can_store(required_size, alignment) {
+            ^mut *buckets.peek_last()
         } else {
-            null
+            cast(^mut BumpBucket) null
         }
 
         // no bucket with enough space
         if free_bucket == null {
-            new_bucket_size := required_size * 2
+            mut new_bucket_size := required_size * 2
             if new_bucket_size < bucket_size {
                 new_bucket_size = bucket_size
             }
 
-            new_mem : []u8 = cast(^u8) parent.allocate(new_bucket_size, @sizeof(u8), alignment)
+            mut new_mem : []u8 = cast(^u8) parent.allocate(new_bucket_size, @sizeof(u8), alignment)
             new_mem.length = cast new_bucket_size
             buckets.add(BumpBucket(memory = new_mem, filled = 0))
 
@@ -90,7 +90,7 @@ impl Allocator for BumpAllocator {
         }
 
         ptr := free_bucket.allocate(required_size, alignment)
-        len_ptr := cast(^uint)ptr
+        len_ptr := cast(^mut uint)ptr
         *len_ptr = count * elementSize
         return util.pointer_add(ptr, 8)
     }
@@ -119,7 +119,7 @@ impl Allocator for BumpAllocator {
 #file_scope
 
 align :: (add: uint, align: uint) -> uint {
-    mul := add + align - 1
+    mut mul := add + align - 1
     mul -= (mul % align)
     
     return mul
@@ -139,7 +139,7 @@ impl BumpBucket {
         return free >= size
     }
 
-    allocate :: (&Self, size: uint, align: uint) -> ^u8 {
+    allocate :: (&mut Self, size: uint, align: uint) -> ^u8 {
         next_address := util.next_aligned(util.pointer_add(memory.data, cast(int)filled), align)
         next_offset := (cast(uint)next_address) - (cast(uint)memory.data)
         filled = next_offset + size
