@@ -20,12 +20,29 @@ format :: (format: ^any, args: []^any = []) {
     print(fmt.format(format_string.slice(), args))
 }
 
+/// Prints `v` followed by a new line (\n) to standard out
+///*
+## Examples
+    println("hi")
+    println(5)
+    // output:
+    // hi
+    // 5
+*/
 println :: (v: $T) {
     s := String.empty()
     s.appendf("{}`n", v)
     print_string(&s)
 }
 
+/// Prints `v` to standard out
+///*
+## Examples
+    print("hi")
+    print(5)
+    // output:
+    // hi5
+*/
 print :: (v: $T) {
     s := String.empty()
     s.appendf("{}", v)

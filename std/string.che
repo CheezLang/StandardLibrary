@@ -19,6 +19,8 @@ if const @is_os("windows") {
 
 #export_scope
 
+/// UTF-8 encoded string data type for dynamically resizable strings and automatic resource management.
+/// Supports custom allocators or no allocators at all (e.g. the string can use memory on the stack).
 String :: struct {
     data      : []mut u8
     length    : int
@@ -36,34 +38,41 @@ impl Drop for String {
 }
 
 impl String {
+    /// Creates an empty string with the provided __allocator__ and a capacity of 0
     empty :: (allocator: ^Allocator = ^DEFAULT_STD_HEAP_ALLOCATOR) -> Self {
         return String(null, 0, allocator)
     }
 
+    /// Creates an empty string with the provided __capacity__ and __allocator__
     with_capacity :: (cap: int, allocator: ^Allocator = ^DEFAULT_STD_HEAP_ALLOCATOR) -> Self {
         result := String(null, 0, allocator)
         result.reserve(cap)
         return result
     }
 
+    /// Creates a string from the provided pointer __ptr__ and capacity __cap__. The string has no allocator so it can not grow over capacity and will not free the memory.
     from_raw_ptr :: (ptr: ^mut u8, cap: int) -> Self {
         mut sl : []mut u8 = ptr
         sl.length = cap
         return String(sl, 0, null)
     }
 
+    /// Creates a string from the provided string __str__ and __allocator__
     from_string :: (str: string, allocator: ^Allocator = ^DEFAULT_STD_HEAP_ALLOCATOR) -> Self {
         s := Self.empty(allocator)
         s.append_string(str)
         return s
     }
 
+    /// Creates a string from the provided c-string __str__ and allocator
     from_cstring :: (str: c_string, allocator: ^Allocator = ^DEFAULT_STD_HEAP_ALLOCATOR) -> Self {
         s := Self.empty(allocator)
         s.append_cstring(str)
         return s
     }
 
+    /// Tries to create a string from the provided UTF-16 bytes __str__.
+    /// Only implemented on windows so far.
     from_utf16 :: (str: []u16) -> Result[String, ()] {
         if const @is_os("windows") {
             required_size := WideCharToMultiByte(CP_UTF8, 0, str.data, cast str.length, null, 0, null, null)
@@ -80,31 +89,42 @@ impl String {
         }
     }
 
+    /// Returns the capacity of the string.
     get_capacity :: (&Self) -> int {
         return data.length
     }
 
+    /// Returns the length of the string in bytes.
     get_length :: (&Self) -> int {
         return length
     }
 
+    /// Returns a pointer to the underlying byte array.
     get_raw :: (&Self) -> ^u8 {
         return data.data
     }
 
+    /// Returns the ASCII character at byte offset __i__.
     char_at :: (&Self, i: int) -> char #operator("[]") {
         code_point, len := Utf8.decode(data[i..data.length])
         return code_point
     }
 
+    /// Sets the ASCII character at index __i__ to __c__
+    /// 
+    ///     s.set_char_at(5, 'H')
+    ///     s[5] = 'H'
     set_char_at :: (&mut Self, i: int, c: u8) #operator("set[]") {
+        @assert(i >= 0 and i < length)
         *data[i] = c
     }
 
+    /// Makes sure that there is enough capacity for _self.length_ + __amount__ ASCII characters.
     reserve_more :: (&mut Self, amount: int) {
         reserve(length + amount)
     }
 
+    /// Makes sure that there is enough capacity for __size__ ASCII characters.
     reserve :: (&mut Self, size: int) {
         if data.length > size {
             return
@@ -122,15 +142,18 @@ impl String {
         }
     }
 
+    /// Clears the string. The capacity remains unchanged.
     clear :: (&mut Self) {
         length = 0
     }
 
+    /// Sets the length in bytes of the string to __size__
     resize :: (&mut Self, size: int) {
         self.reserve(size)
         length = size
     }
 
+    /// Appends the String __other__ to this string.
     append :: (&mut Self, other: &Self) -> &Self #operator("+=") {
         if other.data.data == null {
             return self
@@ -142,6 +165,7 @@ impl String {
         return self
     }
 
+    /// Appends the string __other__ to this string.
     append_string :: (&mut Self, other: string) -> &Self #operator("+=") {
         newLength := length + other.bytes.length
         self.reserve(newLength)
@@ -150,6 +174,7 @@ impl String {
         return self
     }
 
+    /// Appends the c-string __other__ to this string.
     append_cstring :: (&mut Self, other: c_string) -> &Self #operator("+=") {
         otherLen := C.strlen(other)
         newLength := length + int(otherLen)
@@ -159,6 +184,7 @@ impl String {
         return self
     }
 
+    /// Appends the unicode codepoint __ch__ to this string.
     append_char :: (&mut Self, ch: char) -> &Self #operator("+=") {
         bytes, count := Utf8.encode(ch)
         newLength := length + int(count)
@@ -168,28 +194,34 @@ impl String {
         return self
     }
 
+    /// Returns a slice of this string starting at __from__ up to __to__ (exclusive). (__from__..__to__)
     sliceFT :: (&Self, from: int, to: int) -> string {
         slice := string(^*data[from], to - from)
         return slice
     }
 
+    /// Returns a slice of this string starting at __from__ and with length __length__. (__from__..(__from__+__length__))
     sliceFL :: (&Self, from: int, len: int) -> string {
         slice := string(^*data[from], len)
         return slice
     }
 
+    /// Returns a slice of the entire string. (..)
     slice :: (&Self) -> string {
         return self.sliceFL(0, length)
     }
 
+    /// Returns a slice of the string starting at __from__ to the end. (__from__..)
     sliceF :: (&Self, from: int) -> string {
         return self.sliceFL(from, length - from)
     }
     
+    /// Returns a slice of the string from the beginning with length __len__. (0..__len__)
     sliceL :: (&Self, len: int) -> string {
         return self.sliceFL(0, len)
     }
 
+    /// Returns the first index of ASCII character __ch__ or -1 if not found. Note: this doesn't work with Unicode yet!
     index_of :: (&Self, ch: char) -> int {
         for i in 0..length {
             if *data[i] == u8(ch) {
@@ -200,6 +232,7 @@ impl String {
         return -1
     }
 
+    /// Returns a c-string pointing to the content of this string. You should not modify the string while you use the c-string.
     as_cstring :: (&mut Self) -> c_string {
         reserve(length + 1)
         *data[length] = 0u8
@@ -208,6 +241,7 @@ impl String {
 }
 
 impl Equatable[String] for String {
+    /// Returns true if the two strings are equal (same bytes).
     equal :: (&Self, other: &String) -> bool {
         str := self.slice()
         oth := other.slice()
@@ -216,6 +250,7 @@ impl Equatable[String] for String {
 }
 
 impl Equatable[string] for String {
+    /// Returns true if the two strings are equal (same bytes).
     equal :: (&Self, other: &string) -> bool {
         str := self.slice()
         return streq_string(str, *other)
@@ -223,12 +258,14 @@ impl Equatable[string] for String {
 }
 
 impl Equatable[string] for string {
+    /// Returns true if the two strings are equal (same bytes).
     equal :: (&Self, b: &string) -> bool {
         return streq_string(*self, *b)
     }
 }
 
 impl Hashable for String {
+    /// Returns a hash of the string.
     hash :: (&Self) -> uint {
         str := self.slice()
         return str.hash()
@@ -236,6 +273,7 @@ impl Hashable for String {
 }
 
 impl Clone for String {
+    /// Returns a copy of the string.
     clone :: (&Self) -> Self {
         other := String.empty()
         other.append(self)
@@ -339,6 +377,7 @@ impl String {
         return s
     }
 
+    /// Returs an array of slices of the string split at the ASCII character __c__. If __remove_empty__ is __true__ then empty entries are not included.
     split_at_char :: (&Self, c: char, remove_empty: bool = false) -> Array[string] {
         result := Array[string].create()
 
@@ -508,10 +547,12 @@ impl string {
         return StringLineIterator(self)
     }
 
+    /// Returns an iterator which iterates over substrings separated by the ASCII character __c__. If __remove_empty__ is __true__ then empty entries are not included.
     split_at_char :: (Self, c: char, remove_empty: bool = false) -> StringSplitCharIterator {
         return StringSplitCharIterator(self, c, remove_empty)
     }
 
+    /// Returns whether the string starts with __prefix__
     starts_with :: (Self, prefix: string) -> bool {
         self_bytes := self.bytes
         pref_bytes := prefix.bytes
@@ -528,6 +569,7 @@ impl string {
         return true
     }
 
+    /// Returns whether the string ends with __prefix__
     ends_with :: (Self, postfix: string) -> bool {
         self_bytes := self.bytes
         post_bytes := postfix.bytes
@@ -559,6 +601,12 @@ impl string {
         return string(sub_bytes.data, sub_bytes.length)
     }
 
+    ///* Returns a slice starting at the first non-whitespace character and ending at the last non-whitespace charactor.
+    ### Examples
+        "   hello string".trim() == "hello string"
+        "hello string   ".trim() == "hello string"
+        "   hello string   ".trim() == "hello string"
+    */
     trim :: (Self) -> string {
         if self.bytes.length == 0 {
             return ""
@@ -688,6 +736,7 @@ impl Into[String] for string {
 }
 
 impl char {
+    /// Returns true if the character is a space (`' '`), tab (`'\t'`), carriage return (`'\r'`) or line ending (`'\n'`)
     is_whitespace :: (Self) -> bool {
         return match self {
             ' ' -> true
@@ -698,18 +747,22 @@ impl char {
         }
     }
 
+    /// Returns true if the character matches the regex __[a-zA-Z]__
     is_alpha :: (Self) -> bool {
         return (self >= 'a'  and self <= 'z') or (self >= 'A' and self <= 'Z')
     }
 
+    /// Returns true if the character matches the regex __[0-9]__
     is_digit :: (Self) -> bool {
         return (self >= '0'  and self <= '9')
     }
 
+    /// Returns true if the character matches the regex __[0-1]__
     is_bin_digit :: (Self) -> bool {
         return (self >= '0'  and self <= '1')
     }
 
+    /// Returns true if the character matches the regex __[0-9a-FA-F]__
     is_hex_digit :: (Self) -> bool {
         return (self >= '0'  and self <= '9') or (self >= 'a'  and self <= 'f') or (self >= 'A' and self <= 'F')
     }
