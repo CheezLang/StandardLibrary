@@ -26,13 +26,13 @@ if const @is_os("linux") {
         loop Fiber.yield()
     }
 
-    __current_fiber : ^Fiber = null #thread_local
+    mut __current_fiber : ^mut Fiber = null #thread_local
 }
 
 if const @is_os("windows") {
     Fiber :: struct {
         ptr             : ^void
-        parent          : ^Fiber = null
+        parent          : ^mut Fiber = null
         func            : Fn(^void)
         user_data       : ^void
     }
@@ -48,7 +48,7 @@ if const @is_os("linux") {
         rbx         : u64 = 0
         rbp         : u64 = 0
         rdi         : u64 = 0
-        parent      : ^Fiber    = null
+        parent      : ^mut Fiber    = null
         func        : Fn(^void) = null
         user_data   : ^void     = null
     }

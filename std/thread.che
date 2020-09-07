@@ -128,7 +128,7 @@ impl Thread {
         }
         if const @is_os("linux") {
             thread_func :: (data: ^void) -> ^void {
-                thread_data := @cast(^ThreadData, data)
+                thread_data := @cast(^mut ThreadData, data)
                 current_thread_data = thread_data
 
                 func := @cast(Fn(), thread_data.func)
@@ -261,7 +261,7 @@ impl Drop for Mutex {
 
 
 //*
-
+if const @is_os("windows") {
 ConditionVariable :: struct {
     _impl : CONDITION_VARIABLE
 }
@@ -317,6 +317,7 @@ impl Drop for ReentrantLock {
         DeleteCriticalSection(^self._impl)
     }
 }
+}
 
 // thread pool
 ThreadPoolFunc :: (function: fn(^void), data: ^void)
@@ -361,7 +362,7 @@ impl ThreadPool {
                 if next.function != null {
                     next.function(next.data)
                 } else {
-                    Sleep(1)
+                    Thread.sleep(1)
                 }
             }
         }
