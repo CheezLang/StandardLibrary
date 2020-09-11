@@ -38,7 +38,7 @@ try :: (code: Code) #macro {
                 ErrorType :: @typeof(err)
 
                 if const @type_has_trait(ErrorType, Into[TargetType]) {
-                    ReturnType.Err(cast(TargetType) @typeof(err).into(&err))
+                    ReturnType.Err(cast(TargetType) ErrorType.into(&err))
                 } else {
                     ReturnType.Err(err)
                 }
@@ -87,6 +87,20 @@ use Result
 
 impl(T: type) Option[T] if (!@is_trait(T)) {
     unwrap :: (Self) -> T {
+        return match self {
+            Some($v) -> v
+            None -> @assert(false)
+        }
+    }
+
+    unwrap_ref :: (&Self) -> &T {
+        return match self {
+            Some($v) -> v
+            None -> @assert(false)
+        }
+    }
+
+    unwrap_ref_mut :: (&mut Self) -> &mut T {
         return match self {
             Some($v) -> v
             None -> @assert(false)

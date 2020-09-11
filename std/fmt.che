@@ -166,7 +166,7 @@ format_any_into_string :: (result: &mut String, data: ^void, typ: ^TypeInfo, for
     @assert(data != null)
     @assert(typ != null)
     if use_printable_if_possible {
-        trait_func := typ.get_trait_function(Printable, "print", fn(^void, &String, string))
+        trait_func := typ.get_trait_function(Printable, "print", fn(^void, &mut String, string))
         if trait_func != null {
             trait_func(data, result, format)
             return
