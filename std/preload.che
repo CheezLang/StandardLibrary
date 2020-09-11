@@ -117,6 +117,13 @@ impl(T: type) Option[T] if (!@is_trait(T)) {
         }
     }
 
+    map :: (self: Option[T], fun: fn(T) -> $K) -> Option[K] {
+        return match self {
+            Some($value) -> Some(fun(value))
+            None -> None
+        }
+    }
+
     map_ref :: (self: Option[&T], fun: fn(&T) -> $K) -> Option[K] {
         return match self {
             Some($value) -> Some(fun(value))
