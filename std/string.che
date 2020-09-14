@@ -47,6 +47,7 @@ impl String {
     with_capacity :: (cap: int, allocator: ^Allocator = ^DEFAULT_STD_HEAP_ALLOCATOR) -> Self {
         result := String(null, 0, allocator)
         result.reserve(cap)
+        *result.data[0] = 0
         return result
     }
 
