@@ -409,14 +409,14 @@ StringLineIterator :: struct {
 }
 
 for_extension_string_line_iterator :: (self: StringLineIterator, body: Code) #for {
-    it_index := 0
-    bytes := self.remaining.bytes
+    mut it_index := 0
+    mut bytes := self.remaining.bytes
 
     loop {
         if bytes.length <= 0 then break
         defer {it_index += 1}
 
-        line_end  := -1
+        mut line_end  := -1
         for c, i in bytes {
             if char(c) == '`n' {
                 line_end = i
@@ -450,6 +450,36 @@ impl StringSplitCharIterator {
         }
         return result
     }
+
+    collect :: (Self, $Collection: type) -> Result[Collection, ()] {
+        result := Collection.new()
+        for self {
+            if const Collection.ElementType == string {
+                result.add(it)
+            } else {
+                result.add(try(Collection.ElementType.from_string(it)))
+            }
+        }
+        return Ok(result)
+    }
+}
+
+FromString :: trait(T: type) {
+    from_string :: (str: string) -> Result[T, ()];
+}
+
+impl FromString[u32] for u32 {
+    from_string :: (str: string) -> Result[Self, ()] {
+        buff := str.to_owned()
+        return Ok(u32(fmt.parse_int(str)))
+    }
+}
+
+impl FromString[f32] for f32 {
+    from_string :: (str: string) -> Result[Self, ()] {
+        buff := str.to_owned()
+        return Ok(C.strtof(buff.as_cstring(), null))
+    }
 }
 
 for_extension_string_split_char_iterator :: (self: StringSplitCharIterator, body: Code) #for {
@@ -465,7 +495,7 @@ for_extension_string_split_char_iterator :: (self: StringSplitCharIterator, body
             tmp
         }
 
-        if it.bytes.length != 0 {
+        if !self.remove_empty or it.bytes.length != 0 {
             @insert(body)
             it_index += 1
         }

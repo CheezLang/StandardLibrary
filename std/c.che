@@ -23,6 +23,7 @@ strcmp    :: (a: c_string, b: c_string) -> i32;
 strlen    :: (str: c_string) -> u64;
 strncmp   :: (a: c_string, b: c_string, count: u64) -> i32;
 strtod    :: (str: c_string, endptr: ^^char8) -> double;
+strtof    :: (str: c_string, endptr: ^^char8) -> float;
 // strtol    :: (str: c_string, endptr: ^^char8, base: i32) -> i32;
 strtoll   :: (str: c_string, endptr: ^^char8, base: i64) -> i64;
 time      :: (timer: ^void) -> u32;

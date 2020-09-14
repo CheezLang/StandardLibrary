@@ -10,6 +10,7 @@ Array :: struct(T: type) {
     capacity        : int
     length          : int
     allocator       : ^Allocator
+    ElementType     :: T 
 }
 
 impl(T: type) Drop for Array[T] {
