@@ -221,6 +221,14 @@ impl(T: type) Vector2[T] {
     change_type :: (Self, $TargetType: type) -> Vector2[TargetType] {
         return Vector2[TargetType](TargetType(x), TargetType(y))
     }
+
+    xy0 :: (Self) -> Vector3[T] {
+        return Vector3[T](x, y, 0)
+    }
+
+    xy1 :: (Self) -> Vector3[T] {
+        return Vector3[T](x, y, 1)
+    }
 }
 
 impl(T: type) Vector3[T] {
