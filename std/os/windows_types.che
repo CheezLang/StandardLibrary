@@ -33,6 +33,7 @@ WORD                 :: u16
 SIZE_T               :: u64
 THREAD_START_ROUTINE :: fn(^void) -> DWORD #stdcall
 WAITORTIMERCALLBACK  :: fn(^void, bool) #stdcall
+LPOFNHOOKPROC        :: fn(^HWND, UINT, WPARAM, LPARAM) -> UINT_PTR #stdcall
 
 POINT :: struct {
     x   : i32   = 0
@@ -193,6 +194,62 @@ CRITICAL_SECTION :: struct {
 
 CONDITION_VARIABLE :: struct { 
     ptr : ^void = default
+}
+
+OPENFILENAMEA :: struct {
+    lStructSize         : DWORD         = default
+    hwndOwner           : HWND          = default
+    hInstance           : HINSTANCE     = default
+    lpstrFilter         : ^u8           = default
+    lpstrCustomFilter   : ^mut u8       = default
+    nMaxCustFilter      : DWORD         = default
+    nFilterIndex        : DWORD         = default
+    lpstrFile           : ^mut u8       = default
+    nMaxFile            : DWORD         = default
+    lpstrFileTitle      : ^mut u8       = default
+    nMaxFileTitle       : DWORD         = default
+    lpstrInitialDir     : ^u8           = default
+    lpstrTitle          : ^u8           = default
+    Flags               : DWORD         = default
+    nFileOffset         : WORD          = default
+    nFileExtension      : WORD          = default
+    lpstrDefExt         : ^u8           = default
+    lCustData           : LPARAM        = default
+    lpfnHook            : LPOFNHOOKPROC = default
+    lpTemplateName      : ^u8           = default
+    lpEditInfo          : ^void         = default // actally ^EDITMENU, but can't find out what EDITMENU is
+    lpstrPrompt         : ^char         = default
+    pvReserved          : ^mut void     = default
+    dwReserved          : DWORD         = default
+    FlagsEx             : DWORD         = default
+}
+
+OPENFILENAMEW :: struct {
+    lStructSize         : DWORD         = default
+    hwndOwner           : HWND          = default
+    hInstance           : HINSTANCE     = default
+    lpstrFilter         : ^u16          = default
+    lpstrCustomFilter   : ^mut u16      = default
+    nMaxCustFilter      : DWORD         = default
+    nFilterIndex        : DWORD         = default
+    lpstrFile           : ^mut u16      = default
+    nMaxFile            : DWORD         = default
+    lpstrFileTitle      : ^mut u16      = default
+    nMaxFileTitle       : DWORD         = default
+    lpstrInitialDir     : ^u16          = default
+    lpstrTitle          : ^u16          = default
+    Flags               : DWORD         = default
+    nFileOffset         : WORD          = default
+    nFileExtension      : WORD          = default
+    lpstrDefExt         : ^u16          = default
+    lCustData           : LPARAM        = default
+    lpfnHook            : LPOFNHOOKPROC = default
+    lpTemplateName      : ^u16          = default
+    lpEditInfo          : ^void         = default // actally ^EDITMENU, but can't find out what EDITMENU is
+    lpstrPrompt         : ^char         = default
+    pvReserved          : ^mut void     = default
+    dwReserved          : DWORD         = default
+    FlagsEx             : DWORD         = default
 }
 
 // #define UNICODE_NOCHAR                  0xFFFF

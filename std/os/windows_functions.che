@@ -114,6 +114,8 @@ LoadIconA          :: (hInstance: HINSTANCE, lpIconName: c_string) -> HICON #std
 LoadCursorA        :: (hInstance: HINSTANCE, lpIconName: c_string) -> HCURSOR #stdcall;
 PostQuitMessage    :: (exitCode: i32) #stdcall;
 
+GetOpenFileNameW   :: (info: ^OPENFILENAMEW) -> BOOL #stdcall;
+
 GetDC              :: (hwnd: HWND) -> HDC #stdcall;
 ChoosePixelFormat  :: (hdc: HDC, ppfd: ^PIXELFORMATDESCRIPTOR) -> i32 #stdcall;
 SetPixelFormat     :: (hdc: HDC, format: i32, ppfd: ^PIXELFORMATDESCRIPTOR) -> BOOL #stdcall;
