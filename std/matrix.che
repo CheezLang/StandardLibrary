@@ -4,7 +4,7 @@ use import std.string
 
 #export_scope
 
-Matrix4 :: struct(T: type) #copy(T) {
+Matrix4 :: struct(T: type) #copy(T) #align(16) {
     values : [16]T = default
 }
 
@@ -78,6 +78,32 @@ impl(T: type) Matrix4[T] {
         ])
     }
 
+    perspective :: (near: T, far: T, fov: T, aspect: T, inverse_y: bool = false) -> Self {
+        f_x := 1.0f / tanf(fov / 2.0f)
+        f_y := if inverse_y then -f_x else f_x
+        return Self([
+            f_x / aspect, 0.0f, 0.0f,                0.0f
+                    0.0f,  f_y, 0.0f,                0.0f
+                    0.0f, 0.0f, -far / (far - near), -far * near / (far - near)
+                    0.0f, 0.0f, -1,                  0.0f
+        ])
+    }
+
+    perspective_reverse_z :: (near: T, fov: T, aspect: T, inverse_y: bool = false) -> Self {
+        f_x := 1.0f / tanf(fov / 2.0f)
+        f_y := if inverse_y then -f_x else f_x
+        return Self([
+            f_x / aspect, 0.0f,  0.0f, 0.0f
+                    0.0f,  f_y,  0.0f, 0.0f
+                    0.0f, 0.0f, -1.0f, -near
+                    0.0f, 0.0f, -1.0f, 0.0f
+        ])
+    }
+
+    // -y/-y + -near/-y == (-y - near) / -y
+    // y/-y - (y-near)/-y == (near) / -y
+    // 
+
     orthographic :: (left: T, right: T, bottom: T, top: T, near: T, far: T) -> Self {
         width  := right - left
         height := top - bottom
@@ -86,7 +112,7 @@ impl(T: type) Matrix4[T] {
         return Self([
             2.0f / width, 0             , 0             , -(right + left) / width
             0           , 2.0f / height , 0             , -(top + bottom) / height
-            0           , 0             , -2.0f / depth , -(far + near)   / depth 
+            0           , 0             , -2.0f / depth , -(far + near)   / depth
             0           , 0             , 0             , 1
         ])
     }
@@ -127,20 +153,19 @@ impl(T: type) Matrix4[T] {
         return values.data
     }
 
-    muls :: (&Self, s: T) #operator("*=") {
-        values : []T = values
-        for(by_ref=true) values {
+    muls :: (&mut Self, s: T) #operator("*=") {
+        for(by_ref=true) values[..] {
             *it *= s
         }
     }
 
-    mulm :: (&Self, other: &Matrix4[T]) #operator("*=") {
+    mulm :: (&mut Self, other: &Matrix4[T]) #operator("*=") {
         // copy of own values
         a := values
         b : []T = other.values
         for c in 0..4 {
             for r in 0..4 {
-                sum : T = 0
+                mut sum : T = 0
                 for i in 0..4 {
                     sum += *a[i + r * 4] * *b[c + i * 4]
                 }
@@ -152,10 +177,10 @@ impl(T: type) Matrix4[T] {
     mulmm :: (ma: Matrix4[T], mb: Matrix4[T]) -> Matrix4[T] #operator("*") {
         a : []T = ma.values
         b : []T = mb.values
-        result := Matrix4[T]()
+        mut result := Matrix4[T]()
         for c in 0..4 {
             for r in 0..4 {
-                sum : T = 0
+                mut sum : T = 0
                 for i in 0..4 {
                     sum += *a[i + r * 4] * *b[c + i * 4]
                 }
@@ -174,7 +199,7 @@ impl(T: type) Matrix4[T] {
         )
     }
 
-    mulv :: (ma: &Matrix4[T], v: Vector3[T], w: T = 1) -> Vector3[T] #operator("*") {
+    mulv :: (ma: &Matrix4[T], v: Vector3[T], w: T = 1) -> Vector3[T] {
         a : []T = ma.values
         return Vector3[T](
             x = *a[0] * v.x + *a[1] * v.y + *a[2]  * v.z + *a[3]  * w
@@ -182,10 +207,20 @@ impl(T: type) Matrix4[T] {
             z = *a[8] * v.x + *a[9] * v.y + *a[10] * v.z + *a[11] * w
         )
     }
+
+    mulv :: (ma: &Matrix4[T], v: Vector4[T]) -> Vector4[T] #operator("*") {
+        a : []T = ma.values
+        return Vector4[T](
+            x = *a[0] * v.x + *a[1] * v.y + *a[2]  * v.z + *a[3]  * v.w
+            y = *a[4] * v.x + *a[5] * v.y + *a[6]  * v.z + *a[7]  * v.w
+            z = *a[8] * v.x + *a[9] * v.y + *a[10] * v.z + *a[11] * v.w
+            w = *a[12] * v.x + *a[13] * v.y + *a[14] * v.z + *a[15] * v.w
+        )
+    }
 }
 
 impl(T: type) Printable for Matrix4[T] {
-    print :: (&Self, str: &String, format: string) {
+    print :: (&Self, str: &mut String, format: string) {
         for r in 0..4 {
             if r > 0 then str.append_string("`n")
             for c in 0..4 {

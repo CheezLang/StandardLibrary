@@ -15,13 +15,21 @@ use import std.util
 
 C  :: import std.c
 io :: import std.io
+fmt :: import std.fmt
 
 #export_scope
-FsError :: enum {
+FsError :: enum #copy {
     Unknown
     AlreadyExists
     PathNotFound
     InvalidUtf8
+}
+
+impl Into[String] for FsError {
+    into :: (&Self) -> String {
+        err := *self
+        return fmt.format("{}", [err])
+    }
 }
 
 create_directory :: (path: string) -> Result[(), FsError] {

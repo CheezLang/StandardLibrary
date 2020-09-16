@@ -38,6 +38,8 @@ floor :: (double) -> double;
 ceilf :: (float) -> float;
 ceil  :: (double) -> double;
 
+PI :: 3.1415 // TODO
+
 fract :: (v: $T) -> T {
     return v - T(i64(v))
 }
@@ -61,6 +63,14 @@ count_digits :: (mut value: $T, base : int = 10) -> int {
         }
         digits
     }
+}
+
+degrees :: (rad: $T) -> T {
+    return T(180.0 / PI) * rad
+}
+
+radians :: (deg: $T) -> T {
+    return T(PI / 180.0) * deg
 }
 
 Vector2 :: struct(T: type) #copy {
@@ -412,6 +422,14 @@ impl(T: type) Vector3[T] {
 
     xy :: (Self) -> Vector2[T] {
         return Vector2[T](x, y)
+    }
+
+    xyz0 :: (Self) -> Vector4[T] {
+        return Vector4[T](x, y, z, 0)
+    }
+
+    xyz1 :: (Self) -> Vector4[T] {
+        return Vector4[T](x, y, z, 1)
     }
 }
 
