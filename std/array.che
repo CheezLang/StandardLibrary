@@ -51,6 +51,15 @@ impl(T: type) Array[T] {
         return s
     }
 
+    from_slice :: (data: []T, allocator: ^Allocator = ^DEFAULT_STD_HEAP_ALLOCATOR) -> Self {
+        s := Array[T](null, 0, 0, allocator)
+        s.reserve(data.length)
+        for(by_ref=true) d in data {
+            s.add(*d)
+        }
+        return s
+    }
+
     reserve :: (&mut Self, mut size: int) {
         // don't allow size 0
         if size <= 0 {
