@@ -85,6 +85,7 @@ impl Instrumentor {
 
     end_session :: (&mut Self) {
         write_footer()
+        fflush(output_file)
         fclose(output_file)
 
         current_session = ""
@@ -151,18 +152,26 @@ Timer :: struct {
     stopped := false
 }
 
+mut next_min_timer : int = 0 #thread_local
+
+get_next_time_micros :: () -> int {
+    time := max(get_time_microseconds(), next_min_timer)
+    next_min_timer = time + 1
+    return time
+}
+
 impl Timer {
     start :: (name: string) -> Timer {
-        return Timer(name, get_time_microseconds())
+        return Timer(name, get_next_time_micros())
     }
 
     restart :: (&mut Self) {
-        start = get_time_microseconds()
+        start = get_next_time_micros()
         stopped = false
     }
 
     stop :: (&mut Self) {
-        end := get_time_microseconds()
+        end := get_next_time_micros()
         dur := end - start
 
         // printfln("{}: {}ms", (name, double(dur) * 0.001))

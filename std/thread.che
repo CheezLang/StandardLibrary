@@ -101,6 +101,74 @@ impl Thread {
         return Thread(thread_data)
     }
 
+    create_mut :: (func: Fn(^mut $T), user_data: ^mut $T) -> Thread {
+        thread_data := alloc(ThreadData)
+        thread_data.func = @cast(Fn(^void), func)
+        thread_data.user = @cast(^void, user_data)
+
+        if const @is_os("windows") {
+            thread_func :: (data: ^void) -> u32 #stdcall {
+                thread_data := @cast(^mut ThreadData, data)
+                current_thread_data = thread_data
+                thread_data.func(thread_data.user)
+                return 0
+            }
+
+            thread_data.handle = CreateThread(null, 0, thread_func, cast thread_data, 0, null)
+            thread_data.id = cast GetThreadId(thread_data.handle)
+            @assert(thread_data.handle != null)
+        }
+        if const @is_os("linux") {
+            thread_func :: (data: ^void) -> ^void {
+                thread_data := @cast(^mut ThreadData, data)
+                current_thread_data = thread_data
+                thread_data.func(thread_data.user)
+                return null
+            }
+            {
+                attr : pthread_attr_t = default
+                result := pthread_create(^thread_data.handle, null, thread_func, cast thread_data)
+                thread_data.id = cast thread_data.handle
+            }
+        }
+
+        return Thread(thread_data)
+    }
+
+    create_mut_ref :: (func: Fn(&mut $T), user_data: &mut $T) -> Thread {
+        thread_data := alloc(ThreadData)
+        thread_data.func = @cast(Fn(^void), func)
+        thread_data.user = @cast(^void, ^*user_data)
+
+        if const @is_os("windows") {
+            thread_func :: (data: ^void) -> u32 #stdcall {
+                thread_data := @cast(^mut ThreadData, data)
+                current_thread_data = thread_data
+                thread_data.func(thread_data.user)
+                return 0
+            }
+
+            thread_data.handle = CreateThread(null, 0, thread_func, cast thread_data, 0, null)
+            thread_data.id = cast GetThreadId(thread_data.handle)
+            @assert(thread_data.handle != null)
+        }
+        if const @is_os("linux") {
+            thread_func :: (data: ^void) -> ^void {
+                thread_data := @cast(^mut ThreadData, data)
+                current_thread_data = thread_data
+                thread_data.func(thread_data.user)
+                return null
+            }
+            {
+                attr : pthread_attr_t = default
+                result := pthread_create(^thread_data.handle, null, thread_func, cast thread_data)
+                thread_data.id = cast thread_data.handle
+            }
+        }
+
+        return Thread(thread_data)
+    }
+
     new :: (func: Fn()) -> Thread {
         return create_without_data(func)
     }
@@ -259,9 +327,42 @@ impl Drop for Mutex {
     }
 }
 
-
 //*
 if const @is_os("windows") {
+
+Semaphore :: struct {
+    cond_var : Rc[ConditionVariable]
+    lock     : Rc[ReentrantLock]
+    value    : int
+}
+
+impl Semaphore {
+    new :: (value: int) -> Rc[Semaphore] {
+        return Rc[Semaphore].new(Semaphore(
+            cond_var = ConditionVariable.new()
+            lock     = ReentrantLock.new()
+            value    = value
+        ))
+    }
+
+    take :: (&mut Self, amount: int = 1) {
+        lock.get().lock()
+        defer lock.get().release()
+        while value < amount {
+            cond_var.get().wait(lock.get())
+        }
+        value -= amount
+    }
+
+    give :: (&mut Self, amount: int = 1) {
+        lock.get().lock()
+        defer lock.get().release()
+        value += amount
+        cond_var.get().notify_all()
+    }
+}
+
+
 ConditionVariable :: struct {
     _impl : CONDITION_VARIABLE
 }
@@ -323,11 +424,12 @@ impl Drop for ReentrantLock {
 ThreadPoolFunc :: (function: fn(^void), data: ^void)
 
 ThreadPoolData :: struct {
-    threads     : Array[Thread]
-    functions   : RingQueue[ThreadPoolFunc]
-    running     : bool
-    mutex       : Mutex
-    empty_queue : bool
+    threads         : Array[Thread]
+    functions       : RingQueue[ThreadPoolFunc]
+    running         : bool
+    mutex           : Mutex
+    empty_queue     : bool
+    working_threads : u64
 }
 
 ThreadPool :: struct {
@@ -338,23 +440,30 @@ impl ThreadPool {
     create :: (num_threads: int) -> Self {
         data := alloc(ThreadPoolData)
         *data = ThreadPoolData(
-            threads = Array[Thread].create(num_threads)
-            functions = RingQueue[ThreadPoolFunc].new(10)
-            mutex = Mutex.new()
-            running = true
-            empty_queue  = false
+            threads         = Array[Thread].create(num_threads)
+            functions       = RingQueue[ThreadPoolFunc].new(10)
+            mutex           = Mutex.new()
+            running         = true
+            empty_queue     = false
+            working_threads = 0
         )
 
         // defined right here so it's not accessible outside
-        worker :: (tp: ^ThreadPoolData) {
+        worker :: (tp: ^mut ThreadPoolData) {
+            mut next : ThreadPoolFunc = (@cast(fn(^void), null), null)
             while true {
                 tp.mutex.lock()
+                if next.function != null {
+                    tp.working_threads -= 1
+                    next = (@cast(fn(^void), null), null)
+                }
+
                 if !(tp.running or (tp.empty_queue and tp.functions.get_length() > 0)) {
                     break
                 }
 
-                mut next : ThreadPoolFunc = (@cast(fn(^void), null), null)
                 if tp.functions.get_length() > 0 {
+                    tp.working_threads += 1
                     next = tp.functions.pop()
                 }
                 tp.mutex.release()
@@ -368,26 +477,42 @@ impl ThreadPool {
         }
 
         for 0..num_threads {
-            t := Thread.create(cast(Fn(^ThreadPoolData)) worker, data)
+            t := Thread.create_mut(cast(Fn(^mut ThreadPoolData)) worker, data)
             data.threads.add(t)
         }
 
         return ThreadPool(data)
     }
 
+    wait_until_empty :: (&Self) {
+        loop {
+            self.data.mutex.lock()
+            if self.data.functions.count() != 0 or self.data.working_threads != 0 {
+                self.data.mutex.release()
+                Thread.sleep(1)
+                continue
+            } else {
+                self.data.mutex.release()
+                return
+            }
+        }
+    }
+
     count :: (&Self) -> int {
         return data.functions.get_length()
     }
 
-    enqueue :: (&mut Self, function: fn(^$T), data_ptr: ^T) {
+    enqueue :: (&mut Self, function: fn(&$T), data_ptr: &T) {
+        @assert(function != null)
         data.mutex.lock()
         data.functions.push((@cast(fn(^void), function), @cast(^void, data_ptr)))
         data.mutex.release()
     }
 
-    enqueue_mut :: (&mut Self, function: fn(^mut $T), data_ptr: ^mut T) {
+    enqueue_mut :: (&mut Self, function: fn(&mut $T), data_ptr: &mut T) {
+        @assert(function != null)
         data.mutex.lock()
-        data.functions.push((@cast(fn(^void), function), @cast(^void, data_ptr)))
+        data.functions.push((@cast(fn(^void), function), @cast(^void, ^*data_ptr)))
         data.mutex.release()
     }
 
