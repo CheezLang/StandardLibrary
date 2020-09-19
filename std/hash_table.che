@@ -46,7 +46,7 @@ impl(K: type, V: type) Table[K, V] {
 
     clear :: (&mut Self) {
         // @todo
-        for(by_ref=true) entry in entries {
+        for &mut entry in entries {
             entry.filled = false
             entry.is_tombstone = false
             entry.value = None

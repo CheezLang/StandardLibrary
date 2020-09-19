@@ -435,7 +435,15 @@ impl(T: type, Size: int) [Size]T {
         return result
     }
 
-    get_range_from :: (&Self, range: RangeFrom[int]) -> []mut T #operator("[]") {
+    get_range_from :: (&Self, range: RangeFrom[int]) -> []T #operator("[]") {
+        @assert(range.start >= 0 and range.start <= self.length)
+        mut result : []T = *self
+        result.data = cast int(result.data) + range.start * @sizeof(T)
+        result.length = self.length - range.start
+        return result
+    }
+
+    get_range_from_mut :: (&mut Self, range: RangeFrom[int]) -> []mut T #operator("[]") {
         @assert(range.start >= 0 and range.start <= self.length)
         mut result : []mut T = *self
         result.data = cast int(result.data) + range.start * @sizeof(T)
@@ -483,7 +491,8 @@ for_extension_range_from :: (r: RangeFrom[$T], code: Code) #for {
     }
 }
 
-for_extension_slice :: (arr: []$T, code: Code, reverse: bool = false, by_ref: bool = false) #for {
+for_extension_slice :: (arr: []$T, code: Code, reverse: bool = false, by_ref: bool = false, mutable: bool = false) #for {
+    @static_assert(!mutable, "Can't iterate over immutable slice with mutable references")
     while mut it_index := 0, it_index < arr.length, it_index += 1 {
         if const reverse {
             it_index_rev := arr.length - it_index - 1
@@ -496,14 +505,17 @@ for_extension_slice :: (arr: []$T, code: Code, reverse: bool = false, by_ref: bo
     }
 }
 
-for_extension_slice_mut :: (arr: []mut $T, code: Code, reverse: bool = false, by_ref: bool = false) #for {
+for_extension_slice_mut :: (arr: []mut $T, code: Code, reverse: bool = false, by_ref: bool = false, mutable: bool = false) #for {
+    ItType :: if const by_ref {
+        if const mutable then (&mut T) else (&T)
+    } else T
     while mut it_index := 0, it_index < arr.length, it_index += 1 {
         if const reverse {
             it_index_rev := arr.length - it_index - 1
-            it := if const by_ref then arr[it_index_rev] else *arr[it_index_rev]
+            it : ItType = if const by_ref then arr[it_index_rev] else *arr[it_index_rev]
             @insert(code, link=[it_index_rev], _break=break, _continue=continue)
         } else {
-            it := if const by_ref then arr[it_index] else *arr[it_index]
+            it : ItType = if const by_ref then arr[it_index] else *arr[it_index]
             @insert(code, _break=break, _continue=continue)
         }
     }
