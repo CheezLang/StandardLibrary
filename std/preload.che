@@ -507,7 +507,7 @@ for_extension_slice :: (arr: []$T, code: Code, reverse: bool = false, by_ref: bo
 
 for_extension_slice_mut :: (arr: []mut $T, code: Code, reverse: bool = false, by_ref: bool = false, mutable: bool = false) #for {
     ItType :: if const by_ref {
-        if const mutable then (&mut T) else (&T)
+        if const mutable then &mut T else &T
     } else T
     while mut it_index := 0, it_index < arr.length, it_index += 1 {
         if const reverse {

@@ -42,7 +42,7 @@ impl(K: type, V: type) Map[K, V] {
     }
 
     clear :: (&mut Self) {
-        for(by_ref=true) entry in entries {
+        for &mut entry in entries {
             entry.filled = false
             entry.is_tombstone = false
             entry.key = None

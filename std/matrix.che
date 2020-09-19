@@ -154,7 +154,7 @@ impl(T: type) Matrix4[T] {
     }
 
     muls :: (&mut Self, s: T) #operator("*=") {
-        for(by_ref=true) values[..] {
+        for &mut it in values[..] {
             *it *= s
         }
     }
