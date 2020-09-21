@@ -57,9 +57,14 @@ impl Printable for f64 {
         mut buff_format := buff_total[..32]
         mut buff_number := buff_total[32..]
 
-        C.sprintf(buff_format.data, "%%%.*sf", i32(format.bytes.length), format.bytes.data)
-        buff_number.length = C.sprintf(buff_number.data, buff_format.data, self)
-        str.append_cstring(buff_number.data)
+        if format != "" {
+            C.sprintf(buff_format.data, "%%%.*sf", i32(format.bytes.length), format.bytes.data)
+            buff_number.length = C.sprintf(buff_number.data, buff_format.data, *self)
+            str.append_cstring(buff_number.data)
+        } else {
+            buff_number.length = C.sprintf(buff_number.data, "%g", *self)
+            str.append_cstring(buff_number.data)
+        }
     }
 }
 
