@@ -171,6 +171,15 @@ impl(T: type) Array[T] {
         return result
     }
 
+    index_of :: (&mut Self, data: $D, pred: fn(&T, D) -> bool) -> Option[int] {
+        for &value in self.slice() {
+            if pred(value, data) {
+                return Some(it_index)
+            }
+        }
+        return None
+    }
+
     access_unchecked :: (&Self, index: int) -> &T {
         return &data[index]
     }
