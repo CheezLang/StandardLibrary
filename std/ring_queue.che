@@ -90,10 +90,19 @@ impl(T: type) RingQueue[T] {
         @assert(first != last)
 
         val := data[first]
-        // data[first] = default
         C.memset(^data[first], 0, @sizeof(T))
         first = (first + 1) % capacity
         return val
+    }
+
+    peek :: (&Self) -> &T {
+        @assert(self.count() > 0)
+        return self.at(0)
+    }
+
+    peek_last :: (&Self) -> &T {
+        @assert(self.count() > 0)
+        return self.at(self.count() - 1)
     }
 
     at :: (&Self, mut index: int) -> &T #operator("[]") {

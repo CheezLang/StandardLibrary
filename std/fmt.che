@@ -398,7 +398,7 @@ format_any_into_string :: (result: &mut String, data: ^void, typ: ^TypeInfo, for
         }
 
         TypeInfoReference($ti) -> {
-            result.appendf("&0x{:x} (", int(*cast(^^void) data))
+            // result.appendf("&0x{:x} (", int(*cast(^^void) data))
             if ti.is_fat {
                 trait_ptr : __Trait = *cast(^__Trait) data
                 ptr, vtable_raw := Traits.destructure(trait_ptr)
@@ -409,7 +409,7 @@ format_any_into_string :: (result: &mut String, data: ^void, typ: ^TypeInfo, for
                 ref := *ref_ptr
                 format_any_into_string(result, ref, ti.target, format, use_printable_if_possible)
             }
-            result.append_string(")")
+            // result.append_string(")")
         }
 
         $_ -> {

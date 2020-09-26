@@ -51,11 +51,12 @@ impl(T: type) Array[T] {
         return s
     }
 
-    from_slice :: (data: []T, allocator: ^Allocator = ^DEFAULT_STD_HEAP_ALLOCATOR) -> Self {
+    from_slice :: (data: []$T, allocator: ^Allocator = ^DEFAULT_STD_HEAP_ALLOCATOR) -> Self {
         s := Array[T](null, 0, 0, allocator)
         s.reserve(data.length)
-        for(by_ref=true) d in data {
-            s.add(*d)
+        for &d in data {
+            if const @is_copy(T) then s.add(*d)
+            else s.add(d.clone())
         }
         return s
     }
@@ -406,7 +407,7 @@ for_extension_array_T_mut :: (arr: &mut Array[$T], code: Code, reverse: bool = f
     }
 }
 
-impl(T: type) Into[Array[T]] for []T if T : Clone {
+impl(T: type) Into[Array[T]] for []T if T : Clone, #notyet {
     into :: (&Self) -> Array[T] {
         mut result := Array[T].create(self.length)
         for(by_ref=true) v in self[..] {

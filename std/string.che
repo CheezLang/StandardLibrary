@@ -283,7 +283,7 @@ impl Clone for String {
 }
 
 impl String {
-    append_print :: (&mut Self, pr: ^Printable) -> &Self #operator("+=") {
+    append_print :: (&mut Self, pr: &Printable) -> &Self #operator("+=") {
         pr.print(self, "")
         return self
     }
