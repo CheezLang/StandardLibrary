@@ -1,8 +1,9 @@
 use import std.array
 use import std.hash_table
 use import std.string
-use import std.box
 use import std.math
+use import std.box
+use import std.rc
 
 C   :: import std.c
 io  :: import std.io
@@ -165,6 +166,13 @@ impl(K: type, V: type) Printable for Table[K, V] if K: Printable, V: Printable {
             v.value.print(str, "")
         }
         str += "}"
+    }
+}
+
+impl(T: type) Printable for Rc[T] {
+    print :: (&Self, str: &mut String, format: string) {
+        msg := fmt.format("Rc({})", [value])
+        str.append(&msg)
     }
 }
 

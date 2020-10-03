@@ -85,6 +85,22 @@ Result :: enum(V: type, E: type) #copy(V, E) {
 use Option
 use Result
 
+impl(T: type) Option[T] {
+    is_none :: (&Self) -> bool {
+        return match self {
+            Some(_) -> false
+            None    -> true
+        }
+    }
+
+    is_some :: (&Self) -> bool {
+        return match self {
+            Some(_) -> true
+            None    -> false
+        }
+    }
+}
+
 impl(T: type) Option[T] if (!@is_trait(T)) {
     unwrap :: (Self) -> T {
         return match self {
@@ -124,6 +140,13 @@ impl(T: type) Option[T] if (!@is_trait(T)) {
                 Some(v)
             }
             None -> def
+        }
+    }
+
+    flat_map :: (self: Option[T], fun: fn(T) -> Option[$K]) -> Option[K] {
+        return match self {
+            Some($value) -> fun(value)
+            None -> None
         }
     }
 

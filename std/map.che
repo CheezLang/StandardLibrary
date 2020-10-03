@@ -2,9 +2,12 @@ use import std.mem.allocator
 use import std.mem.std_heap_allocator
 use import std.hash
 use import std.iterator
+use import std.string
+use import std.printable
 
 C :: import std.c
 io :: import std.io
+fmt :: import std.fmt
 
 #export_scope
 
@@ -190,7 +193,11 @@ impl(K: type, V: type) Map[K, V] {
         return true
     }
 
-    adjust_capacity :: (&mut Self, cap: uint) {
+    adjust_capacity :: (&mut Self, mut cap: uint) {
+        if cap == 0 {
+            cap = 13
+        }
+
         entries_new := alloc_n(Entry[K, V], cap, allocator)
 
         for i in 0..entries_new.length {
@@ -231,6 +238,17 @@ impl(K: type, V: type) Clone for Map[K, V] if K : Clone, V : Clone {
             result.set(kv.key.clone(), kv.value.clone())
         }
         return result
+    }
+}
+
+impl(K: type, V: type) Printable for Map[K, V] if K : Printable, V : Printable {
+    print :: (&Self, result: &mut String, format: string) {
+        result.append_string("{")
+        for kv in self {
+            if it_index > 0 then result.append_string(", ")
+            fmt.format_into(result, "{}: {}", [kv.key, kv.value])
+        }
+        result.append_string("}")
     }
 }
 

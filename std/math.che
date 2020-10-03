@@ -73,6 +73,12 @@ radians :: (deg: $T) -> T {
     return T(PI / 180.0) * deg
 }
 
+impl f32 {
+    floor :: (Self) -> f32 {
+        return floorf(self)
+    }
+}
+
 Vector2 :: struct(T: type) #copy {
     x : T = default
     y : T = default

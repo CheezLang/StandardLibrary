@@ -9,24 +9,33 @@ Allocator :: trait {
 }
 
 alloc :: ($T: type, allocator: ^Allocator = ^DEFAULT_STD_HEAP_ALLOCATOR) -> ^mut T {
+    @static_assert(@sizeof(T) > 0)
     return alloc_raw(T, 1, allocator)
 }
 
 alloc_raw :: ($T: type, count: uint, allocator: ^Allocator = ^DEFAULT_STD_HEAP_ALLOCATOR) -> ^mut T {
+    @static_assert(@sizeof(T) > 0)
+    @assert(count > 0)
     return cast(^mut T)allocator.allocate(cast count, @sizeof(T), @alignof(T))
 }
 
 realloc_raw :: (mem: ^$T, count: uint, allocator: ^Allocator = ^DEFAULT_STD_HEAP_ALLOCATOR) -> ^mut T {
+    @static_assert(@sizeof(T) > 0)
+    @assert(count > 0)
     return cast allocator.reallocate(cast mem, count, @sizeof(T), @alignof(T))
 }
 
 alloc_n :: ($T: type, count: uint, allocator: ^Allocator = ^DEFAULT_STD_HEAP_ALLOCATOR) -> []mut T {
+    @static_assert(@sizeof(T) > 0)
+    @assert(count > 0)
     mut mem : []mut T = cast(^T) allocator.allocate(count, @sizeof(T), @alignof(T))
     mem.length = cast count
     return mem
 }
 
 realloc_n :: (mut mem: []mut $T, count: uint, allocator: ^Allocator = ^DEFAULT_STD_HEAP_ALLOCATOR) -> []mut T {
+    @static_assert(@sizeof(T) > 0)
+    @assert(count > 0)
     mem.data = cast allocator.reallocate(cast mem.data, count, @sizeof(T), @alignof(T))
     mem.length = cast count
     return mem
