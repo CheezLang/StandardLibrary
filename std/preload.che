@@ -489,6 +489,16 @@ impl(T: type, Size: int) [Size]T {
     }
 }
 
+Slice :: struct {}
+impl Slice {
+    from_ptr_and_length :: (ptr: ^$T, length: int) -> []T {
+        mut result : []T = []
+        result.data = ptr
+        result.length = length
+        return result
+    }
+}
+
 // standard for loops
 for_extension_range :: (r: Range[$T], code: Code) #for {
     rev := r.end < r.start
@@ -586,6 +596,7 @@ Traits :: struct {
         return cast fat.value, cast fat.vtable
     }
 }
+
 
 //
 __any :: struct {

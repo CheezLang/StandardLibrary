@@ -133,6 +133,7 @@ CreateFiber          :: (dwStackSize: int, lpStartAddress: fn(^void) #stdcall, l
 DeleteFiber          :: (fiber: ^void) #stdcall;
 
 // process
+GetCurrentProcess  :: () -> HANDLE #stdcall;
 GetModuleHandleA   :: (lpModuleName: c_string) -> HMODULE #stdcall;
 CreateProcessA :: (
     lpApplicationName: c_string,
@@ -180,6 +181,11 @@ SleepConditionVariableCS                :: (var: ^CONDITION_VARIABLE, section: ^
 _InterlockedCompareExchange64           :: (dest: ^LONG64, value: LONG64, compare_to: LONG64) -> LONG64 #stdcall;
 _InterlockedExchange64                  :: (dest: ^LONG64, value: LONG64) -> LONG64 #stdcall;
 
+
+VirtualAlloc    :: (address: ^void, size: SIZE_T, allocation_type: DWORD, protect: DWORD) -> ^void #stdcall;
+VirtualFree     :: (address: ^void, size: SIZE_T, free_type: DWORD) -> BOOL #stdcall;
+VirtualProtect  :: (address: ^void, size: SIZE_T, new_protect: DWORD, old_protect: ^mut DWORD) -> BOOL #stdcall;
+FlushInstructionCache :: (hProcess: HANDLE, lpBaseAddress: ^void, dwSize: SIZE_T) -> BOOL #stdcall;
 
 // somehow not linking
 GetCurrentDirectoryW :: (nBufferLength: DWORD, lpBuffer: ^u16) -> DWORD #stdcall;
