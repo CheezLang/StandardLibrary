@@ -126,7 +126,10 @@ impl String {
     }
 
     /// Makes sure that there is enough capacity for __size__ ASCII characters.
-    reserve :: (&mut Self, size: int) {
+    reserve :: (&mut Self, mut size: int) {
+        if size <= 0 {
+            size = 1
+        }
         if data.length > size {
             return
         }
