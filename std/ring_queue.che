@@ -132,7 +132,7 @@ impl(T: type) Drop for RingQueue[T] {
     }
 }
 
-for_extension_ring_queue_T :: (que: &RingQueue[$T], code: Code, reverse: bool = false, by_ref: bool = true) #for {
+for_extension_ring_queue_T :: (que: &RingQueue[$T], code: Code, reverse: bool = false, by_ref: bool = true, mutable: bool = true) #for {
     while mut it_index := 0, it_index < que.count(), it_index += 1 {
         if const reverse {
             it_index_rev := que.count() - it_index - 1
