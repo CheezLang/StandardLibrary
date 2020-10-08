@@ -11,7 +11,10 @@ stdout : ^FILE = __acrt_iob_func(1)
 stderr : ^FILE = __acrt_iob_func(2)
 
 getchar   :: () -> i32;
-gets      :: (string: c_string) -> c_string;
+
+/// Don't use this, can cause buffer overflow
+gets      :: (str: ^mut char8) -> ^char8;
+fgets     :: (str: ^mut char8, num: i32, stream: ^FILE) -> ^char8;
 printf    :: (format: c_string) #varargs;
 puts      :: (str: c_string);
 rand      :: () -> i32;

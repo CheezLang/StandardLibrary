@@ -27,36 +27,59 @@ push_var :: (var: Code, x: Code) #macro #transparent {
 
 // try
 try :: (code: Code) #macro {
-    match @insert(code, _break=break, _continue=continue) {
-        Ok($val) -> val
-        Err($err) -> {
-            ReturnType :: @function_type().return_type
-            return if const ReturnType == bool {
-                false
-            } else {
-                TargetType :: ReturnType.E
-                ErrorType :: @typeof(err)
+    ReturnType :: @function_type().return_type
+    result := @insert(code, _break=break, _continue=continue)
+    match @typeof(result) {
+        Option[$T] -> match result {
+            Some($val) -> val
+            None -> match ReturnType {
+                void -> { return }
+                bool -> { return false }
+                Option[$V2] -> { return Option[V2].None }
+                // Result[$V, $E] -> {  }
+                _ -> @static_assert(false, "Can't use try() on type '" + @typename(@typeof(result)) + "' in a function returning '" + @typename(ReturnType) + "'")
+            }
+        }
 
-                if const @type_has_trait(ErrorType, Into[TargetType]) {
-                    ReturnType.Err(cast(TargetType) ErrorType.into(&err))
+        Result[$V, $E] -> match result {
+            Ok($val) -> val
+            Err($err) -> {
+                return if const ReturnType == bool {
+                    false
                 } else {
-                    ReturnType.Err(err)
+                    TargetType :: ReturnType.E
+                    ErrorType :: @typeof(err)
+
+                    if const @type_has_trait(ErrorType, Into[TargetType]) {
+                        ReturnType.Err(cast(TargetType) ErrorType.into(&err))
+                    } else {
+                        ReturnType.Err(err)
+                    }
+                    // bug?
+                    // if const @type_has_trait(ErrorType, Into[TargetType]) {
+                    //     return ReturnType.Err(cast(TargetType) @typeof(err).into(err))
+                    // } else {
+                    //     return ReturnType.Err(err)
+                    // }
                 }
-                // bug?
-                // if const @type_has_trait(ErrorType, Into[TargetType]) {
-                //     return ReturnType.Err(cast(TargetType) @typeof(err).into(err))
-                // } else {
-                //     return ReturnType.Err(err)
-                // }
             }
         }
     }
 }
 
 try_with :: (code: Code, with: Code) #macro {
-    match @insert(code, _break=break, _continue=continue) {
-        Ok($val) -> val
-        Err($err) -> @insert(with, link=[err], _break=break, _continue=continue)
+    ReturnType :: @function_type().return_type
+    result := @insert(code)
+    match @typeof(result) {
+        Option[$T] -> match result {
+            Some($val) -> val
+            None -> @insert(with)
+        }
+
+        Result[$V, $E] -> match result {
+            Ok($val) -> val
+            Err($err) -> @insert(with, link=[err])
+        }
     }
 }
 
