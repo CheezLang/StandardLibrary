@@ -117,7 +117,7 @@ impl(K: type, V: type) Table[K, V] {
         return is_new_key
     }
 
-    get :: (&mut Self, key: K) -> Option[&V] {
+    get :: (&Self, key: K) -> Option[&V] {
         if entries.data == null {
             return None
         }

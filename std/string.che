@@ -818,10 +818,11 @@ impl c_string {
 
 for_extension_string_builtin :: (arr: string, code: Code) #for {
     bytes := arr.bytes
+    mut byte_index := 0
 
-    while mut it_index := 0, it_index < bytes.length {
-        it, len := Utf8.decode(bytes[it_index..bytes.length])
-        @insert(code, _break=break, _continue=continue)
-        it_index += int(len)
+    while mut it_index := 0, byte_index < bytes.length, it_index += 1 {
+        it, len := Utf8.decode(bytes[byte_index..bytes.length])
+        @insert(code, link=[byte_index], _break=break, _continue=continue)
+        byte_index += int(len)
     }
 }

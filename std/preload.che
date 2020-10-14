@@ -996,3 +996,11 @@ pointer_add :: (ptr: ^$T, amount: int) -> ^T {
 
 max :: (a: $T, b: T) -> T { return if a >= b then a else b }
 min :: (a: $T, b: T) -> T { return if a <= b then a else b }
+
+impl int {
+    clamp :: (Self, min: Self, max: Self) -> Self {
+        if self < min { return min }
+        if self > max { return max }
+        return self
+    }
+}

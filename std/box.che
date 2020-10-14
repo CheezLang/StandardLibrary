@@ -1,4 +1,4 @@
-use import std.mem.allocator
+mem :: import std.mem.allocator
 
 #export_scope
 
@@ -7,24 +7,22 @@ Box :: struct(T: type) {
 }
 
 impl(T: type) Box[T] {
-    // create :: (v: T) -> Box[T] {
-    //     p := alloc(T)
-    //     *p = v
-    //     return Box[T](p)
-    // }
-
-    new :: (v: $T2) -> Box[T] {
-        p := alloc(T2)
-        *p = v
-        return Box[T](cast p)
-    }
-
     empty :: () -> Box[T] {
         return Box[T](null)
     }
 
+    new :: (value: $K) -> Box[T] {
+        ptr := mem.alloc(K)
+        *ptr = value
+        return Box[T](cast ptr)
+    }
+
     from_pointer :: (ptr: ^T) -> Box[T] {
         return Box[T](ptr)
+    }
+
+    is_null :: (&Self) -> bool {
+        return value == null
     }
 
     get :: (&Self) -> &T {
@@ -40,7 +38,7 @@ impl(T: type) Box[T] {
 
 impl(T: type) Drop for Box[T] {
     drop :: (&Self) {
-        free(value)
+        mem.free(value)
         @cast(&mut Self, self).value = null
     }
 }
