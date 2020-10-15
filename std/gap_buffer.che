@@ -1,0 +1,167 @@
+use import std.mem.std_heap_allocator
+use import std.printable
+use import std.string
+
+mem :: import std.mem.allocator
+C   :: import std.c
+
+fmt :: import std.fmt
+
+#export_scope
+
+GapBuffer :: struct(T: type) {
+    ElementType :: T
+
+    elements    : []mut T
+    allocator   : ^mem.Allocator
+    gap0        : i64
+    gap1        : i64
+}
+
+impl(T: type) Printable for GapBuffer[T] {
+    print :: (&Self, buffer: &mut String, format: string) {
+        buffer.append_string("[")
+        for &it in self.elements[..self.gap0] {
+            if it_index > 0 then buffer.append_string(", ")
+            fmt.format_into(buffer, "{}", [it])
+        }
+
+        fmt.format_into(buffer, " |{}..{}| ", [self.gap0, self.gap1])
+
+        for &it in self.elements[self.gap1..] {
+            if it_index > 0 then buffer.append_string(", ")
+            fmt.format_into(buffer, "{}", [it])
+        }
+        buffer.append_string("]")
+    }
+}
+
+impl(T: type) Drop for GapBuffer[T] {
+    drop :: (&Self) {
+        for &it in self.elements[..self.gap0] {
+            Memory.drop(it)
+        }
+        for &it in self.elements[self.gap1..] {
+            Memory.drop(it)
+        }
+        mem.free_n(self.elements, self.allocator)
+    }
+}
+
+impl(T: type) GapBuffer[T] {
+    new :: (mut capacity: i64, allocator: ^mem.Allocator = ^DEFAULT_STD_HEAP_ALLOCATOR) -> Self {
+        if capacity <= 0 {
+            capacity = 1
+        }
+        elements := mem.alloc_n(T, u64(capacity), allocator)
+        return Self(
+            elements    = elements
+            allocator   = allocator
+            gap0        = 0
+            gap1        = capacity
+        )
+    }
+
+    count :: (&Self) -> int {
+        return self.gap0 + (self.elements.length - self.gap1)
+    }
+
+    append :: (&mut Self, value: T) {
+        self.insert(self.gap0, value)
+    }
+
+    truncate :: (&mut Self, amount: int = 1) {
+        for 0 .. amount {
+            self.erase(self.gap0 - 1)
+        }
+    }
+
+    insert :: (&mut Self, index: int, value: T) {
+        @assert(index >= 0 and index <= self.count())
+        if self.gap0 >= self.gap1 {
+            self.reserve(self.elements.length * 2)
+        }
+
+        self.move_gap(index)
+
+        // gap0 == index
+        *self.elements[self.gap0] = value
+        self.gap0 += 1
+    }
+
+    erase :: (&mut Self, index: int) {
+        @assert(index >= 0 and index < self.count())
+        self.move_gap(index + 1)
+        self.gap0 -= 1
+    }
+
+    move_gap :: (&mut Self, index: int) {
+        if index < self.gap0 {
+            count := self.gap0 - index
+            C.memmove(self.elements[(self.gap1 - count)..].data, self.elements[index..].data, u64(@sizeof(T) * count))
+            self.gap0 = index
+            self.gap1 -= count
+        } else if index > self.gap0 {
+            count := index - self.gap0
+            C.memmove(self.elements[self.gap0..].data, self.elements[self.gap1..].data, u64(@sizeof(T) * count))
+            self.gap0 = index
+            self.gap1 += count
+        }
+    }
+
+    reserve :: (&mut Self, mut size: int) {
+        if size <= 0 {
+            size = 1
+        }
+
+        @assert(size >= self.count())
+        if self.elements.length >= size {
+            return
+        }
+
+        elements_new := mem.alloc_n(T, u64(size), self.allocator)
+        gap1_new := size - (self.elements.length - self.gap1)
+
+        // copy ..gap0
+        if self.gap0 > 0 {
+            C.memcpy(elements_new.data, self.elements.data, u64(@sizeof(T) * self.gap0))
+        }
+
+        // copy gap1..
+        if self.gap1 < self.elements.length {
+            count := self.elements.length - self.gap1
+            C.memcpy(elements_new[gap1_new..].data, self.elements[self.gap1..].data, u64(@sizeof(T) * count))
+        }
+
+        mem.free_n(self.elements)
+
+        self.elements = elements_new
+        self.gap1 = gap1_new
+    }
+}
+
+for_extension_gap_buffer :: (self: &GapBuffer[$T], code: Code, by_ref: bool = false, mutable: bool = false) #for {
+    mut it_index := 0
+    mut raw_index := 0
+    { #label block
+        while raw_index < self.gap0, raw_index += 1 {
+            defer it_index += 1
+            if const by_ref {
+                it : &mut T = self.elements[raw_index]
+            } else {
+                it : T = *self.elements[raw_index]
+            }
+            @insert(code, link=[raw_index], _break = break block, _continue = continue)
+        }
+        raw_index = self.gap1
+        while raw_index < self.elements.length, raw_index += 1 {
+            defer it_index += 1
+            if const by_ref {
+                it : &mut T = self.elements[raw_index]
+            } else {
+                it : T = *self.elements[raw_index]
+            }
+            @insert(code, link=[raw_index], _break = break block, _continue = continue)
+        }
+    }
+}
