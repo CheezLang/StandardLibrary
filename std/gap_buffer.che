@@ -66,6 +66,18 @@ impl(T: type) GapBuffer[T] {
         return self.gap0 + (self.elements.length - self.gap1)
     }
 
+    at :: (&Self, index: int) -> &T #operator("[]") {
+        @assert(index >= 0 and index < self.count())
+        actual_index := if index < self.gap0 then index else self.gap1 + index - self.gap0
+        return self.elements[actual_index]
+    }
+
+    at_mut :: (&mut Self, index: int) -> &mut T #operator("[]") {
+        @assert(index >= 0 and index < self.count())
+        actual_index := if index < self.gap0 then index else self.gap1 + index - self.gap0
+        return self.elements[actual_index]
+    }
+
     append :: (&mut Self, value: T) {
         self.insert(self.gap0, value)
     }
