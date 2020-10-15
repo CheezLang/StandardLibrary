@@ -108,6 +108,7 @@ impl(T: type) GapBuffer[T] {
     }
 
     move_gap :: (&mut Self, index: int) {
+        @assert(index <= self.count())
         if index < self.gap0 {
             count := self.gap0 - index
             C.memmove(self.elements[(self.gap1 - count)..].data, self.elements[index..].data, u64(@sizeof(T) * count))
