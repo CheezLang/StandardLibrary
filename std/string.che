@@ -412,6 +412,8 @@ StringLineIterator :: struct {
     remaining: string
 }
 
+/// iterates through all lines
+/// `it` contains the ending `\n`
 for_extension_string_line_iterator :: (self: StringLineIterator, body: Code) #for {
     mut it_index := 0
     mut bytes := self.remaining.bytes
@@ -420,10 +422,17 @@ for_extension_string_line_iterator :: (self: StringLineIterator, body: Code) #fo
         if bytes.length <= 0 then break
         defer {it_index += 1}
 
-        mut line_end  := -1
+        mut line_end := -1
+        mut next_line := -1
         for c, i in bytes {
-            if char(c) == '`n' {
+            if char(c) == '`r' {
                 line_end = i
+            }
+            if char(c) == '`n' {
+                if line_end == -1 {
+                    line_end = i
+                }
+                next_line = i + 1
                 break
             }
         }
@@ -431,10 +440,11 @@ for_extension_string_line_iterator :: (self: StringLineIterator, body: Code) #fo
         // if no newline was found, then the line is the remainder of the string
         if line_end == -1 {
             line_end = bytes.length
+            next_line = bytes.length
         }
 
         line    := bytes[0 .. line_end]
-        bytes   = bytes[(line_end + 1) .. bytes.length]
+        bytes   = bytes[next_line .. bytes.length]
         it      := string(line.data, line.length)
         @insert(body)
     }
