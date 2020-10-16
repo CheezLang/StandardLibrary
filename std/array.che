@@ -256,15 +256,9 @@ impl(T: type) Array[T] {
     //     return string(cast data, length)
     // }
 
-    // get_range_from :: (&Self, range: RangeFrom[int]) -> []T #operator("[]") {
-    //     if !(range.start >= 0 and range.start <= self.bytes.length) {
-    //         _C.printf("%lld, %lld`n", range.start, self.bytes.length)
-    //     }
-    //     @assert(range.start >= 0 and range.start <= self.bytes.length)
-    //     data := int(self.bytes.data) + range.start
-    //     length := self.bytes.length - range.start
-    //     return string(cast data, length)
-    // }
+    get_range_from :: (&Self, range: RangeFrom[int]) -> []T #operator("[]") {
+        return self.sliceF(range.start)
+    }
 
     get_range_full :: (&Self, range: RangeFull) -> []T #operator("[]") {
         return self.slice()
