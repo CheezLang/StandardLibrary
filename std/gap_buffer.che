@@ -105,6 +105,7 @@ impl(T: type) GapBuffer[T] {
         @assert(index >= 0 and index < self.count())
         self.move_gap(index + 1)
         self.gap0 -= 1
+        Memory.drop(self.elements[self.gap0])
     }
 
     move_gap :: (&mut Self, index: int) {
@@ -146,7 +147,7 @@ impl(T: type) GapBuffer[T] {
             C.memcpy(elements_new[gap1_new..].data, self.elements[self.gap1..].data, u64(@sizeof(T) * count))
         }
 
-        mem.free_n(self.elements)
+        mem.free_n(self.elements, self.allocator)
 
         self.elements = elements_new
         self.gap1 = gap1_new
