@@ -791,9 +791,13 @@ impl char {
         }
     }
 
-    /// Returns true if the character matches the regex __[a-zA-Z]__
+    /// Returns true if the character matches the regex __[a-zA-ZäÄöÖüÜß]__
     is_alpha :: (Self) -> bool {
-        return (self >= 'a'  and self <= 'z') or (self >= 'A' and self <= 'Z')
+        return (self >= 'a'  and self <= 'z') or
+            (self >= 'A' and self <= 'Z') or
+            (self == 'ä' or self == 'ö' or self == 'ü') or
+            (self == 'Ä' or self == 'Ö' or self == 'Ü') or
+            (self == 'ß')
     }
 
     /// Returns true if the character matches the regex __[0-9]__
@@ -809,6 +813,22 @@ impl char {
     /// Returns true if the character matches the regex __[0-9a-FA-F]__
     is_hex_digit :: (Self) -> bool {
         return (self >= '0'  and self <= '9') or (self >= 'a'  and self <= 'f') or (self >= 'A' and self <= 'F')
+    }
+
+    to_upper :: (Self) -> Self {
+        return if self >= 'a' and self <= 'z' then 'A' + (self - 'a')
+        else if self == 'ä' then 'Ä'
+        else if self == 'ö' then 'Ö'
+        else if self == 'ü' then 'Ü'
+        else self
+    }
+
+    to_lower :: (Self) -> Self {
+        return if self >= 'A' and self <= 'Z' then 'a' + (self - 'A')
+        else if self == 'Ä' then 'ä'
+        else if self == 'Ö' then 'ö'
+        else if self == 'Ü' then 'ü'
+        else self
     }
 }
 
