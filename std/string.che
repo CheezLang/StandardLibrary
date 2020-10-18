@@ -65,6 +65,13 @@ impl String {
         return s
     }
 
+    /// Creates a string from the provided string __str__ and __allocator__
+    from_char :: (ch: char, allocator: ^Allocator = ^DEFAULT_STD_HEAP_ALLOCATOR) -> Self {
+        s := Self.empty(allocator)
+        s.append_char(ch)
+        return s
+    }
+
     /// Creates a string from the provided c-string __str__ and allocator
     from_cstring :: (str: c_string, allocator: ^Allocator = ^DEFAULT_STD_HEAP_ALLOCATOR) -> Self {
         s := Self.empty(allocator)
@@ -417,10 +424,11 @@ StringLineIterator :: struct {
 for_extension_string_line_iterator :: (self: StringLineIterator, body: Code) #for {
     mut it_index := 0
     mut bytes := self.remaining.bytes
+    mut ends_in_newline := false
 
     loop {
         if bytes.length <= 0 then break
-        defer {it_index += 1}
+        defer { it_index += 1 }
 
         mut line_end := -1
         mut next_line := -1
@@ -429,6 +437,9 @@ for_extension_string_line_iterator :: (self: StringLineIterator, body: Code) #fo
                 line_end = i
             }
             if char(c) == '`n' {
+                if i == bytes.length - 1 {
+                    ends_in_newline = true
+                }
                 if line_end == -1 {
                     line_end = i
                 }
@@ -446,7 +457,11 @@ for_extension_string_line_iterator :: (self: StringLineIterator, body: Code) #fo
         line    := bytes[0 .. line_end]
         bytes   = bytes[next_line .. bytes.length]
         it      := string(line.data, line.length)
-        @insert(body)
+        @insert(body, _break=break, _continue=continue)
+    }
+    if ends_in_newline {
+        it := ""
+        @insert(body, _break={}, _continue={})
     }
 }
 
