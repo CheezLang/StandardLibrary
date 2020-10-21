@@ -292,7 +292,11 @@ RangeFull :: struct {}
 
 impl(T: type) Range[T] {
     reverse :: (self: Range[T]) -> Range[T] {
-        return Range[T](self.end - 1, self.start - 1)
+        if self.end > self.start {
+            return Range[T](self.end - 1, self.start - 1)
+        } else {
+            return Range[T](self.end + 1, self.start + 1)
+        }
     }
 }
 

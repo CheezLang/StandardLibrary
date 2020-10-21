@@ -419,6 +419,16 @@ StringLineIterator :: struct {
     remaining: string
 }
 
+impl StringLineIterator {
+    collect :: (Self) -> Array[string] {
+        mut result := Array[string].new()
+        for line in self {
+            result.push(line)
+        }
+        return result
+    }
+}
+
 /// iterates through all lines
 /// `it` contains the ending `\n`
 for_extension_string_line_iterator :: (self: StringLineIterator, body: Code) #for {
