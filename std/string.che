@@ -855,6 +855,15 @@ impl char {
         else if self == 'Ü' then 'ü'
         else self
     }
+
+    is_upper :: (Self) -> bool {
+        return (self >= 'A' and self <= 'Z') or (self == 'Ä') or (self == 'Ö') or (self == 'Ü')
+    }
+
+    is_lower :: (Self) -> bool {
+        return (self >= 'a' and self <= 'z') or (self == 'ä') or (self == 'ö') or (self == 'ü')
+    }
+
 }
 
 impl c_string {
