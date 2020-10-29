@@ -141,6 +141,10 @@ impl(T: type) Ref[T] {
         value = null
         return result
     }
+
+    equals :: (&Self, other: &Self) -> bool #operator("==") {
+        return self.value == other.value
+    }
 }
 
 impl(T: type) Clone for Ref[T] {

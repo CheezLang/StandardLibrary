@@ -16,6 +16,7 @@ BOOL                 :: i32
 UINT                 :: u32
 LONG                 :: i32
 ULONG                :: u32
+ULONG32              :: u32
 LONGLONG             :: i64
 LONG64               :: i64
 LARGE_INTEGER        :: LONGLONG

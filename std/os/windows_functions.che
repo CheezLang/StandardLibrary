@@ -84,9 +84,9 @@ GetStdHandle     :: (nStdHandle: DWORD) -> HANDLE #stdcall;
 SetFilePointerEx :: (hFile: HANDLE, liDistanceToMove: LARGE_INTEGER, lpNewFilePointer: ^LARGE_INTEGER, dwMoveMethod: DWORD) -> BOOL #stdcall;
 WriteFile        :: (hFile: HANDLE, lpBuffer: ^void, nNumberOfBytesToWrite: DWORD, lpNumberOfBytesWritten: ^DWORD, lpOverlapped: ^void) -> BOOL #stdcall;
 ReadFile         :: (hFile: HANDLE, lpBuffer: ^void, nNumberOfBytesToRead: DWORD, lpNumberOfBytesRead: ^DWORD, lpOverlapped: ^void) -> BOOL #stdcall;
-CreateFileA      :: (lpFileName: ^u8,  dwDesiredAccess: DWORD, dwShareMode: DWORD, lpSecurityAttributes: ^SECURITY_ATTRIBUTES, dwCreationDisposition: DWORD, dwFlagsAndAttributes: DWORD, hTemplateFile: HANDLE) -> HANDLE #stdcall;
+CreateFileA      :: (lpFileName: ^char8,  dwDesiredAccess: DWORD, dwShareMode: DWORD, lpSecurityAttributes: ^SECURITY_ATTRIBUTES, dwCreationDisposition: DWORD, dwFlagsAndAttributes: DWORD, hTemplateFile: HANDLE) -> HANDLE #stdcall;
 CreateFileW      :: (lpFileName: ^u16, dwDesiredAccess: DWORD, dwShareMode: DWORD, lpSecurityAttributes: ^SECURITY_ATTRIBUTES, dwCreationDisposition: DWORD, dwFlagsAndAttributes: DWORD, hTemplateFile: HANDLE) -> HANDLE #stdcall;
-CreateDirectoryA :: (lpPathName: ^u8,  lpSecurityAttributes: ^SECURITY_ATTRIBUTES) -> BOOL #stdcall;
+CreateDirectoryA :: (lpPathName: ^char8,  lpSecurityAttributes: ^SECURITY_ATTRIBUTES) -> BOOL #stdcall;
 CreateDirectoryW :: (lpPathName: ^u16, lpSecurityAttributes: ^SECURITY_ATTRIBUTES) -> BOOL #stdcall;
 GetFileSize      :: (hFile: HANDLE, lpFileSizeHigh: ^DWORD) -> DWORD #stdcall;
 GetFileSizeEx    :: (hFile: HANDLE, lpFileSize: ^LARGE_INTEGER) -> BOOL #stdcall;
@@ -134,6 +134,7 @@ DeleteFiber          :: (fiber: ^void) #stdcall;
 
 // process
 GetCurrentProcess  :: () -> HANDLE #stdcall;
+GetProcessId       :: (process: HANDLE) -> DWORD #stdcall;
 GetModuleHandleA   :: (lpModuleName: c_string) -> HMODULE #stdcall;
 CreateProcessA :: (
     lpApplicationName: c_string,

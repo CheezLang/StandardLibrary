@@ -660,6 +660,17 @@ impl FatFunctions {
     }
 }
 
+Function :: struct {}
+
+impl Function {
+    to_pointer :: (func: $T) -> ^void {
+        return *cast(^^void)^func
+    }
+    from_pointer :: (ptr: ^void, $T: type) -> T {
+        return *cast(^T)^ptr
+    }
+}
+
 // VTable :: struct {
 
 // }
