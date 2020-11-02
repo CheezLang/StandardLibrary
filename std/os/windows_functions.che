@@ -91,6 +91,11 @@ CreateDirectoryW :: (lpPathName: ^u16, lpSecurityAttributes: ^SECURITY_ATTRIBUTE
 GetFileSize      :: (hFile: HANDLE, lpFileSizeHigh: ^DWORD) -> DWORD #stdcall;
 GetFileSizeEx    :: (hFile: HANDLE, lpFileSize: ^LARGE_INTEGER) -> BOOL #stdcall;
 GetFullPathNameW :: (lpFileName: ^u16, nBufferLength: DWORD, lpBuffer: c_string, lpFilePart: ^c_string) -> DWORD #stdcall;
+GetFileAttributesW :: (lpFileName: ^u16) -> DWORD #stdcall;
+
+FindFirstFileW  :: (lpFileName: ^u16, lpFindFileData: ^WIN32_FIND_DATAW) -> HANDLE #stdcall;
+FindNextFileW   :: (find_file: HANDLE, lpFindFileData: ^WIN32_FIND_DATAW) -> BOOL #stdcall;
+FindClose       :: (hFindFile: HANDLE) -> BOOL #stdcall;
 
 // console stuff
 WriteConsoleW    :: (hConsoleOutput: HANDLE, lpBuffer: ^void, nNumberOfBytesToWrite: DWORD, lpNumberOfCharsWritten: ^DWORD, lpOverlapped: ^void) -> BOOL #stdcall;

@@ -36,7 +36,7 @@ create_directory :: (path: string) -> Result[(), FsError] {
     if const @is_os("windows") {
         // get full path
         full_path := try_with(get_full_path(path), {return Err(FsError.Unknown)})
-        
+
         // prepend \\?\ to path to remove path length limit
         path_long := String.empty()
         &path_long += "\\?\"
@@ -194,7 +194,7 @@ read_file :: (path: string) -> Result[String, FsError] {
 
         result := String.empty()
         result.resize(size)
-        
+
         bytesRead : u32 = 0
         if ReadFile(handle, result.get_raw(), cast(u32)size, ^bytesRead, null) == 0 {
             return Err(FsError.Unknown)
@@ -246,7 +246,7 @@ read_file_binary :: (path: string) -> Result[Array[u8], FsError] {
 
         result := Array[u8].create()
         result.resize(size)
-        
+
         bytesRead : u32 = 0
         if ReadFile(handle, result.get_raw(), cast(u32)size, ^bytesRead, null) == 0 {
             return Err(FsError.Unknown)
@@ -291,8 +291,6 @@ read_file_binary :: (path: string) -> Result[Array[u8], FsError] {
         return Ok(result)
     }
 }
-
-
 
 get_full_path :: (path: string) -> Result[String, ()] {
     if const @is_os("windows") {
@@ -369,6 +367,55 @@ get_working_directory :: () -> Result[String, ()] {
     }
 }
 
+EnumerateDirectoryFlags :: enum #flags {
+    None
+    Files
+    Directories
+}
+
+get_items_in_directory :: (path: string, flags: EnumerateDirectoryFlags = .Files or .Directories) -> Result[Array[String], ()] {
+    result := Array[String].new()
+
+    if const @is_os("windows") {
+        full_path := fmt.format("\\?\{}\*", [try(Path.get_full_path(path))])
+        full_path_utf16 := try(full_path.slice().to_utf16())
+
+        mut find_data : WIN32_FIND_DATAW = default
+        handle := FindFirstFileW(full_path_utf16.get_raw(), ^mut find_data)
+        if handle == INVALID_HANDLE_VALUE_PTR {
+            return Ok(result)
+        }
+        defer FindClose(handle)
+
+        loop {
+            include := ((EnumerateDirectoryFlags.Files is in flags) and @bin_and(find_data.dwFileAttributes, FILE_ATTRIBUTE_DIRECTORY) == 0) or
+                ((EnumerateDirectoryFlags.Directories is in flags) and @bin_and(find_data.dwFileAttributes, FILE_ATTRIBUTE_DIRECTORY) != 0)
+
+            if include {
+                mut length := 0
+                for find_data.cFileName[..] {
+                    if it == 0 {
+                        length = it_index
+                        break
+                    }
+                }
+                path_utf16 := Slice.from_ptr_and_length(find_data.cFileName.data, length)
+                path := try(String.from_utf16(path_utf16))
+                result.add(path)
+            }
+
+            if FindNextFileW(handle, ^mut find_data) == 0 {
+                break
+            }
+        }
+    }
+
+    if const @is_os("linux") {
+        @static_assert("Not implemented yet")
+    }
+
+    return Ok(result)
+}
 
 Path :: struct {}
 
@@ -473,6 +520,40 @@ impl Path {
             // buff := @dup(0u16, MAX_PATH)
             // size := cast(int) GetModuleFileNameW(null, buff.data, cast buff.length)
             // return String.from_utf16(buff[..size])
+        }
+    }
+
+    get_full_path :: (path: string) -> Result[String, ()] {
+        if const @is_os("windows") {
+            path_utf16 := try(path.to_utf16())
+
+            required_length := GetFullPathNameW(path_utf16.get_raw(), 0, null, null)
+            buffer := alloc_n(u16, required_length)
+            defer free_n(buffer)
+
+            len := GetFullPathNameW(path_utf16.get_raw(), required_length, cast buffer.data, null)
+            if len == 0 {
+                return Err(())
+            }
+
+            return String.from_utf16(buffer[..int(len)])
+        }
+
+        if const @is_os("linux") {
+            return expand_path(path)
+        }
+    }
+
+    is_directory :: (path: string) -> bool {
+        if const @is_os("windows") {
+            full_path := fmt.format("\\?\{}", [try(Path.get_full_path(path))])
+            full_path_utf16 := try(full_path.slice().to_utf16())
+            attributes := GetFileAttributesW(full_path_utf16.slice().data)
+            return @bin_and(attributes, FILE_ATTRIBUTE_DIRECTORY) != 0
+        }
+
+        if const @is_os("linux") {
+            @static_assert("Not implemented yet")
         }
     }
 }

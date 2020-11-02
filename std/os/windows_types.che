@@ -1,3 +1,5 @@
+use import windows_constants
+
 #export_scope
 
 DWORD                :: u32
@@ -84,7 +86,7 @@ MINMAXINFO :: struct {
 //     ULONG_PTR dwData;
 //     DWORD cbData;
 //     _Field_size_bytes_(cbData) PVOID lpData;
-// } 
+// }
 
 MDINEXTMENU :: struct {
     hmenuIn     : HMENU
@@ -193,8 +195,29 @@ CRITICAL_SECTION :: struct {
     SpinCount      : ULONG      = default // force size on 64-bit systems when packed
 }
 
-CONDITION_VARIABLE :: struct { 
+CONDITION_VARIABLE :: struct {
     ptr : ^void = default
+}
+
+FILETIME :: struct #copy {
+    dwLowDateTime   : DWORD = default
+    dwHighDateTime  : DWORD = default
+}
+
+WIN32_FIND_DATAW :: struct #copy {
+    dwFileAttributes        : DWORD         = default
+    ftCreationTime          : FILETIME      = default
+    ftLastAccessTime        : FILETIME      = default
+    ftLastWriteTime         : FILETIME      = default
+    nFileSizeHigh           : DWORD         = default
+    nFileSizeLow            : DWORD         = default
+    dwReserved0             : DWORD         = default
+    dwReserved1             : DWORD         = default
+    cFileName               : [MAX_PATH]u16 = default
+    cAlternateFileName      : [14]u16       = default
+    dwFileType              : DWORD         = default
+    dwCreatorType           : DWORD         = default
+    wFinderFlags            : WORD          = default
 }
 
 OPENFILENAMEA :: struct {
