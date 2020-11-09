@@ -139,6 +139,21 @@ impl(T: type) Array[T] {
         length += 1
     }
 
+    insert_at :: (&mut Self, index: int, val: T) {
+        @assert(index >= 0 and index <= get_length())
+
+        if get_capacity() <= get_length() {
+            reserve(get_capacity() * 2)
+        }
+
+        for {index .. length}.reverse() {
+            data[it + 1] = data[it]
+        }
+
+        data[index] = val
+        length += 1
+    }
+
     pop :: (&mut Self) -> T {
         @assert(length > 0)
 
@@ -191,7 +206,7 @@ impl(T: type) Array[T] {
 
     access :: (&Self, index: int) -> &T #operator("[]") {
         if !(index >= 0 and index < length) {
-            C.printf("%lld`n", index)
+            C.printf("Array.access: index out of range: %lld`n", index)
         }
         @assert(index >= 0 and index < length, "Index was out of range")
         return &data[index]
@@ -199,7 +214,7 @@ impl(T: type) Array[T] {
 
     access_mut :: (&mut Self, index: int) -> &mut T #operator("[]") {
         if !(index >= 0 and index < length) {
-            C.printf("%lld`n", index)
+            C.printf("Array.access_mut: index out of range: %lld`n", index)
         }
         @assert(index >= 0 and index < length, "Index was out of range")
         return &data[index]
