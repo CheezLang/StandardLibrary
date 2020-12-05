@@ -22,6 +22,27 @@ impl Printable for FmtAlign {
     }
 }
 
+try_parse_int :: (mut str: string, base: int = 10) -> Result[int, ()] {
+    mut val := 0
+    mut sign := 1
+
+    if str.bytes.length > 0 and char(*str[0]) == '-' {
+        sign = -1
+        str = str[1..]
+    }
+
+    for c in str {
+        if !c.is_digit_in_base(base) {
+            return Err()
+        }
+
+        val *= base
+        val += c.get_digit_value(base)
+    }
+
+    return Ok(val * sign)
+}
+
 parse_int :: (mut str: string) -> int {
     mut val := 0
     mut sign := 1

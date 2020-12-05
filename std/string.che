@@ -840,6 +840,34 @@ impl char {
         return (self >= '0'  and self <= '9') or (self >= 'a'  and self <= 'f') or (self >= 'A' and self <= 'F')
     }
 
+    is_digit_in_base :: (Self, base: int) -> bool {
+        @assert(base >= 2 and base <= 36)
+
+        is_in_range :: (self: char, begin: char, range: int) -> bool {
+            return self >= begin and self <= char(int(begin) + range - 1)
+        }
+
+        if base <= 10 {
+            return is_in_range(self, '0', base)
+        } else {
+            return is_in_range(self, '0', 10) and (is_in_range(self, 'a', base - 10) or is_in_range(self, 'A', base - 10))
+        }
+    }
+
+    get_digit_value :: (Self, base: int = 10) -> int {
+        @assert(base >= 2 and base <= 36)
+
+        if self >= '0' and self <= '9' {
+            return int(self) - int('0')
+        } else if self >= 'a' and self <= 'z' {
+            return int(self) - int('a')
+        } else if self >= 'A' and self <= 'Z' {
+            return int(self) - int('A')
+        } else {
+            return -1
+        }
+    }
+
     to_upper :: (Self) -> Self {
         return if self >= 'a' and self <= 'z' then 'A' + (self - 'a')
         else if self == 'ä' then 'Ä'
