@@ -394,8 +394,7 @@ impl(F: type, T: type) From[Array[F]] for Array[T] if T : From[F], #notyet {
 //     }
 // }
 
-for_extension_array_T_mut :: (arr: &mut Array[$T], code: Code, reverse: bool = false,
-                            by_ref: bool = true) #for {
+for_extension_array_T_mut :: (arr: &mut Array[$T], code: Code, reverse: bool = false, by_ref: bool = true) #for {
     while mut it_index := 0, it_index < arr.get_length(), it_index += 1 {
         if const reverse {
             it_index_rev := arr.length - it_index - 1
