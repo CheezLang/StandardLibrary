@@ -50,6 +50,9 @@ parse_int :: (mut str: string) -> int {
     if str.bytes.length > 0 and char(*str[0]) == '-' {
         sign = -1
         str = str[1..]
+    } else if str.bytes.length > 0 and char(*str[0]) == '+' {
+        sign = 1
+        str = str[1..]
     }
 
     for c in str {
