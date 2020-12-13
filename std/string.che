@@ -535,8 +535,8 @@ for_extension_string_split_char_iterator :: (self: StringSplitCharIterator, body
         }
 
         if !self.remove_empty or it.bytes.length != 0 {
-            @insert(body)
-            it_index += 1
+            defer { it_index += 1 }
+            @insert(body, _break=break, _continue=continue)
         }
     }
 }
