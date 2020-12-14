@@ -670,7 +670,7 @@ impl string {
         return string(sub_bytes.data, sub_bytes.length)
     }
 
-    ///* Returns a slice starting at the first non-whitespace character and ending at the last non-whitespace charactor.
+    ///* Returns a slice starting at the first non-whitespace character and ending at the last non-whitespace character.
     ### Examples
         "   hello string".trim() == "hello string"
         "hello string   ".trim() == "hello string"

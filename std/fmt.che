@@ -7,17 +7,18 @@ io :: import std.io
 #export_scope
 
 FmtAlign :: struct #copy {
-    amount: int
+    amount      : int
+    character   : char
 }
 
-align :: (amount: int) -> FmtAlign {
-    return FmtAlign(amount)
+align :: (amount: int, character: char = ' ') -> FmtAlign {
+    return FmtAlign(amount, character)
 }
 
 impl Printable for FmtAlign {
     print :: (&Self, str: &mut String, format: string) {
         while str.get_length() < amount {
-            str += ' '
+            str += character
         }
     }
 }

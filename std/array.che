@@ -231,7 +231,7 @@ impl(T: type) Array[T] {
         return self.sliceFL(0, length)
     }
 
-    slice_mut :: (&Self) -> []mut T {
+    slice_mut :: (&mut Self) -> []mut T {
         mut slice : []mut T = ^mut data[0]
         slice.length = length
         return slice
