@@ -253,11 +253,16 @@ impl(K: type, V: type) Printable for Map[K, V] if K : Printable, V : Printable {
     }
 }
 
-for_extension_map :: (r: &Map[$K, $V], code: Code, reverse: bool = false, by_ref: bool = true) #for {
+for_extension_map :: (r: &Map[$K, $V], code: Code, reverse: bool = false, by_ref: bool = true, mutable: bool = true) #for {
     mut it_index := 0
     for(by_ref=true) e, _ in r.get_entries() {
         if !e.filled then continue
-        it : (key: &K, value: &V) = &e.key.Some, &e.value.Some
+
+        if const mutable {
+            it : (key: &mut K, value: &mut V) = &mut e.key.Some, &mut e.value.Some
+        } else {
+            it : (key: &K, value: &V) = &e.key.Some, &e.value.Some
+        }
         @insert(code, _break=@link(break), _continue=@link(continue))
         it_index += 1
     }

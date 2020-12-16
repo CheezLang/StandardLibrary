@@ -266,29 +266,29 @@ impl Equatable[TypeId] for TypeId {
 // }
 
 // Ranges
-Range :: struct(T: type) {
+Range :: struct(T: type) #copy {
     start : T = default
     end   : T = default
 }
 
-RangeInclusive :: struct(T: type) {
+RangeInclusive :: struct(T: type) #copy {
     start : T = default
     end   : T = default
 }
 
-RangeFrom :: struct(T: type) {
+RangeFrom :: struct(T: type) #copy {
     start : T = default
 }
 
-RangeTo :: struct(T: type) {
+RangeTo :: struct(T: type) #copy {
     end : T = default
 }
 
-RangeToInclusive :: struct(T: type) {
+RangeToInclusive :: struct(T: type) #copy {
     end : T = default
 }
 
-RangeFull :: struct {}
+RangeFull :: struct #copy {}
 
 impl(T: type) Range[T] {
     reverse :: (self: Range[T]) -> Range[T] {
@@ -297,6 +297,12 @@ impl(T: type) Range[T] {
         } else {
             return Range[T](self.end + 1, self.start + 1)
         }
+    }
+}
+
+impl(T: type) RangeInclusive[T] {
+    contains :: (Self, value: T) -> bool {
+        return value >= self.start and value <= self.end
     }
 }
 

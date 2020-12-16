@@ -174,13 +174,27 @@ impl(T: type) Array[T] {
         }
     }
 
+    erase :: (&mut Self, value: &$K) -> bool {
+        for 0..length {
+            if @impl(T, Equatable[K]).equal(&data[it_index], value) {
+                length -= 1
+                for i in it_index..length {
+                    data[i] = data[i + 1]
+                }
+                return true
+            }
+        }
+
+        return false
+    }
+
     remove_at :: (&mut Self, index: int) -> T {
         @assert(index >= 0 and index < get_length())
 
         result := data[length]
         length -= 1
 
-        while mut i := index, i < length, i += 1 {
+        for i in index..length {
             data[i] = data[i + 1]
         }
 
