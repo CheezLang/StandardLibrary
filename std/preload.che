@@ -290,12 +290,12 @@ RangeToInclusive :: struct(T: type) #copy {
 
 RangeFull :: struct #copy {}
 
-impl(T: type) Range[T] {
-    reverse :: (self: Range[T]) -> Range[T] {
+impl Range[int] {
+    reverse :: (self: Range[int]) -> Range[int] {
         if self.end > self.start {
-            return Range[T](self.end - 1, self.start - 1)
+            return Range[int](self.end - 1, self.start - 1)
         } else {
-            return Range[T](self.end + 1, self.start + 1)
+            return Range[int](self.end + 1, self.start + 1)
         }
     }
 }
