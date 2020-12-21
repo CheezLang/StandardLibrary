@@ -1,0 +1,17 @@
+use import std.string
+
+io  :: import std.io
+fmt :: import std.fmt
+
+use import std.regex
+
+Main :: () {
+    result := test()
+    io.formatln("{}", [result])
+}
+
+test :: () -> Result[(), ()] {
+    regex := try(Regex.compile("."))
+
+    return Ok()
+}

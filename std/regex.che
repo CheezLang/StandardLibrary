@@ -1,0 +1,17 @@
+use import std.string
+
+io  :: import std.io
+fmt :: import std.fmt
+
+#export_scope
+
+Regex :: struct {
+
+}
+
+impl Regex {
+    compile :: (pattern: string) -> Result[Regex, ()] {
+
+        return Err()
+    }
+}
