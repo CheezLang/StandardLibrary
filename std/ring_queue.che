@@ -1,7 +1,11 @@
 use import std.mem.allocator
 use import std.mem.std_heap_allocator
 use import std.util
+use import std.printable
+use import std.string
+
 C :: import std.c
+fmt :: import std.fmt
 
 #export_scope
 
@@ -27,6 +31,14 @@ impl(T: type) RingQueue[T] {
             last = 0
             allocator = allocator
         )
+    }
+
+    from_slice :: (values: []T) -> RingQueue[T] {
+        mut result := Self.new(values.length)
+        for v in values {
+            result.push(v)
+        }
+        return result
     }
 
     get_capacity :: (&Self) -> int {
@@ -132,6 +144,27 @@ impl(T: type) Drop for RingQueue[T] {
     }
 }
 
+impl(T: type) Printable for RingQueue[T] if T : Printable {
+    print :: (&Self, result: &mut String, format: string) {
+        result.append_string("[")
+        for value in self {
+            if it_index > 0 then result.append_string(", ")
+            fmt.format_into(result, "{}", [value])
+        }
+        result.append_string("]")
+    }
+}
+
+impl(T: type) Clone for RingQueue[T] if T : Clone {
+    clone :: (&Self) -> RingQueue[T] {
+        mut result := Self.new(max(10, self.count()))
+        for &v in self {
+            result.push(v.clone())
+        }
+        return result
+    }
+}
+
 for_extension_ring_queue_T :: (que: &RingQueue[$T], code: Code, reverse: bool = false, by_ref: bool = true, mutable: bool = true) #for {
     while mut it_index := 0, it_index < que.count(), it_index += 1 {
         if const reverse {
@@ -152,3 +185,4 @@ for_extension_ring_queue_T :: (que: &RingQueue[$T], code: Code, reverse: bool = 
         }
     }
 }
+
