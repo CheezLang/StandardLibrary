@@ -11,8 +11,6 @@ fmt :: import std.fmt
 
 #export_scope
 
-
-
 Map :: struct(K: type, V: type) {
     max_load  : double
     _count    : uint

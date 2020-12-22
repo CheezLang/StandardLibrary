@@ -1,0 +1,114 @@
+use import std.map
+use import std.mem.std_heap_allocator
+use import std.printable
+use import std.string
+
+mem :: import std.mem.allocator
+io  :: import std.io
+fmt :: import std.fmt
+
+#export_scope
+
+Set :: struct(T: type) {
+    map : Map[T, ()]
+}
+
+impl(T: type) Set[T] {
+    new :: (allocator: ^mut mem.Allocator = ^mut DEFAULT_STD_HEAP_ALLOCATOR) -> Self {
+        if const !@type_has_trait(T, Equatable[T]) {
+            @static_assert(false, "Value type of set must implement Equatable")
+        }
+        return Set[T](Map[T, ()].new(allocator))
+    }
+
+    from_slice :: (values: []T) -> Set[T] {
+        mut set := Self.new()
+        for v in values {
+            set.add(v)
+        }
+        return set
+    }
+
+    count :: (&Self) -> int {
+        return map.count()
+    }
+
+    add :: (&mut Self, value: T) -> bool {
+        return map.set(value, ())
+    }
+
+    remove :: (&mut Self, value: T) -> bool {
+        return map.delete(value)
+    }
+
+    add_slice :: (&mut Self, values: []T) -> bool {
+        mut changes := false
+        for v in values {
+            changes = self.add(v) or changes
+        }
+        return changes
+    }
+
+    add_set :: (&mut Self, values: &Set[T]) -> bool {
+        mut changes := false
+        for &v in values {
+            changes = self.add(*v) or changes
+        }
+        return changes
+    }
+
+    subtract_set :: (&mut Self, values: &Set[T]) -> bool {
+        mut changes := false
+        for &v in values {
+            changes = self.remove(*v) or changes
+        }
+        return changes
+    }
+
+    contains :: (&Self, value: $K) -> bool {
+        return map.contains(value)
+    }
+
+    intersect :: (&Self, other: &Set[T]) -> Set[T] {
+        mut result := Self.new()
+        for &val in self {
+            if other.contains(*val) then result.add(*val)
+        }
+        return result
+    }
+
+    union :: (&Self, other: &Set[T]) -> Set[T] {
+        mut result := Self.new()
+        for &val in self {
+            result.add(*val)
+        }
+        for &val in other {
+            result.add(*val)
+        }
+        return result
+    }
+}
+
+impl(T: type) Printable for Set[T] if T : Printable {
+    print :: (&Self, result: &mut String, format: string) {
+        result.append_string("{")
+        for value in self {
+            if it_index > 0 then result.append_string(", ")
+            fmt.format_into(result, "{}", [value])
+        }
+        result.append_string("}")
+    }
+}
+
+for_extension_set :: (self: &Set[$T], code: Code, reverse: bool = false, by_ref: bool = true, mutable: bool = true) #for {
+    mut it_index := 0
+    for(by_ref, mutable) kv in &self.map {
+        if const mutable {
+            it : &mut T = kv.key
+        } else {
+            it : &T = kv.key
+        }
+        @insert(code, _break=@link(break), _continue=@link(continue))
+        it_index += 1
+    }
+}
