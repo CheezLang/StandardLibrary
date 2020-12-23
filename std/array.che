@@ -191,7 +191,7 @@ impl(T: type) Array[T] {
     remove_at :: (&mut Self, index: int) -> T {
         @assert(index >= 0 and index < get_length())
 
-        result := data[length]
+        result := data[index]
         length -= 1
 
         for i in index..length {
@@ -199,6 +199,15 @@ impl(T: type) Array[T] {
         }
 
         return result
+    }
+
+    index_of_value :: (&mut Self, data: $D) -> Option[int] {
+        for &value in self.slice() {
+            if data == *value {
+                return Some(it_index)
+            }
+        }
+        return None
     }
 
     index_of :: (&mut Self, data: $D, pred: fn(&T, D) -> bool) -> Option[int] {

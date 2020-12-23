@@ -5,6 +5,7 @@ use import std.string
 mem :: import std.mem.allocator
 C   :: import std.c
 
+io  :: import std.io
 fmt :: import std.fmt
 
 #export_scope
@@ -73,6 +74,9 @@ impl(T: type) GapBuffer[T] {
     }
 
     at_mut :: (&mut Self, index: int) -> &mut T #operator("[]") {
+        if !(index >= 0 and index < self.count()) {
+            io.formatln("{} out of range 0..{}", [index, self.count()])
+        }
         @assert(index >= 0 and index < self.count())
         actual_index := if index < self.gap0 then index else self.gap1 + index - self.gap0
         return self.elements[actual_index]
@@ -101,11 +105,11 @@ impl(T: type) GapBuffer[T] {
         self.gap0 += 1
     }
 
-    erase :: (&mut Self, index: int) {
+    erase :: (&mut Self, index: int) -> T {
         @assert(index >= 0 and index < self.count())
         self.move_gap(index + 1)
         self.gap0 -= 1
-        Memory.drop(self.elements[self.gap0])
+        return *self.elements[self.gap0]
     }
 
     move_gap :: (&mut Self, index: int) {
@@ -151,6 +155,15 @@ impl(T: type) GapBuffer[T] {
 
         self.elements = elements_new
         self.gap1 = gap1_new
+    }
+
+    index_of_value :: (&Self, value: T) -> Option[int] {
+        for &v in self {
+            if *v == value {
+                return Some(it_index)
+            }
+        }
+        return None
     }
 }
 

@@ -1,0 +1,224 @@
+use import std.mem.std_heap_allocator
+use import std.iterator
+use import std.array
+use import std.printable
+use import std.string
+
+mem :: import std.mem.allocator
+C   :: import std.c
+io  :: import std.io
+fmt :: import std.fmt
+
+#export_scope
+
+LinkedList :: struct(T: type) {
+    Entry :: struct {
+        value : T
+        next  : ^mut Entry
+        prev  : ^mut Entry
+    }
+    ElementType     :: T
+
+    elements        : ^mut Entry
+    pool            : Array[^mut Entry]
+    count           : int
+    allocator       : ^mem.Allocator
+}
+
+impl(T: type) Drop for LinkedList[T] {
+    drop :: (&Self) {
+        // destruct values
+        // for 0..length {
+        //     Memory.drop(data[it])
+        // }
+
+        // free(data, allocator)
+        // data = null
+        // length = 0
+    }
+}
+
+impl(T: type) Clone for LinkedList[T] if T : Clone {
+    clone :: (&Self) -> Self {
+        result := LinkedList[T].new()
+        return result
+    }
+}
+
+impl(T: type) LinkedList[T] {
+    new :: (allocator: ^mem.Allocator = ^DEFAULT_STD_HEAP_ALLOCATOR) -> Self {
+        return LinkedList[T](null, Array[^mut Self.Entry].new(), 0, allocator)
+    }
+
+    append :: (&mut Self, value: T) -> ^mut Self.Entry {
+        new_entry := if self.elements == null {
+            new_entry := self.get_new_entry()
+            new_entry.prev = new_entry
+            new_entry.next = null
+            self.elements = new_entry
+
+            new_entry
+        } else {
+            last := self.elements.prev
+            new_entry := self.get_new_entry()
+            new_entry.prev = last
+            new_entry.next = null
+
+            last.next = new_entry
+            self.elements.prev = new_entry
+
+            new_entry
+        }
+
+        new_entry.value = value
+
+        self.count += 1
+        return new_entry
+    }
+
+    insert_after :: (&mut Self, entry: ^mut Self.Entry, value: T) -> ^mut Self.Entry {
+        @assert(self.elements != null and entry != null)
+        new_entry := self.get_new_entry()
+        new_entry.value = value
+        new_entry.prev = entry
+        new_entry.next = entry.next
+
+        if entry.next != null {
+            entry.next.prev = new_entry
+        }
+        entry.next = new_entry
+
+        if entry == self.elements.prev {
+            // inserted after last
+            self.elements.prev = new_entry
+        }
+
+        self.count += 1
+        return new_entry
+    }
+
+    erase :: (&mut Self, entry: ^mut Self.Entry) -> T {
+        // if self.elements == null {
+        //     io.formatln("Trying to erase entry from empty list")
+        //     @assert(false)
+        // }
+        if entry == self.elements {
+            // entry is first entry
+            self.elements = entry.next
+            self.elements.prev = entry.prev
+        } else if entry == self.elements.prev {
+            // entry is last entry
+            // @assert(entry.next == null)
+            self.elements.prev = entry.prev
+            entry.prev.next = null
+        } else {
+            // entry is somewhere in the middle
+            entry.prev.next = entry.next
+            entry.next.prev = entry.prev
+        }
+
+        pool.add(entry)
+        self.count -= 1
+
+        return entry.value
+    }
+
+    insert_entry_after :: (&mut Self, entry: ^mut Self.Entry, new_entry: ^mut Self.Entry) {
+        @assert(self.elements != null and entry != null)
+        new_entry.prev = entry
+        new_entry.next = entry.next
+
+        if entry.next != null {
+            entry.next.prev = new_entry
+        }
+        entry.next = new_entry
+
+        if entry == self.elements.prev {
+            // inserted after last
+            self.elements.prev = new_entry
+        }
+
+        self.count += 1
+    }
+
+    erase_entry :: (&mut Self, entry: ^mut Self.Entry) {
+        if self.elements == null {
+            io.formatln("Trying to erase entry from empty list")
+            @assert(false)
+        }
+        if entry == self.elements {
+            // entry is first entry
+            self.elements = entry.next
+            self.elements.prev = entry.prev
+        } else if entry == self.elements.prev {
+            // entry is last entry
+            @assert(entry.next == null)
+            self.elements.prev = entry.prev
+            entry.prev.next = null
+        } else {
+            // entry is somewhere in the middle
+            entry.prev.next = entry.next
+            entry.next.prev = entry.prev
+        }
+
+        self.count -= 1
+    }
+
+    get_new_entry :: (&mut Self) -> ^mut Self.Entry {
+        if pool.count() > 0 {
+            return pool.pop()
+        } else {
+            return mem.alloc(Self.Entry, self.allocator)
+        }
+    }
+
+    get_next :: (&Self, entry: ^mut Self.Entry) -> ^mut Self.Entry {
+        // @assert(self.elements != null)
+        return if entry == self.elements.prev then self.elements else entry.next
+    }
+
+    get_prev :: (&Self, entry: ^mut Self.Entry) -> ^mut Self.Entry {
+        // @assert(self.elements != null)
+        return entry.prev
+    }
+}
+
+impl(T: type) Printable for LinkedList[T] {
+    print :: (&Self, buffer: &mut String, format: string) {
+        buffer.append_string("[")
+        mut current := self.elements
+        for {0..} {
+            if current == null then break
+            if it_index > 0 then buffer.append_string(", ")
+            fmt.format_into(buffer, "{}", [&current.value])
+            current = current.next
+        }
+        buffer.append_string("]")
+    }
+}
+
+// for_extension_gap_buffer :: (self: &GapBuffer[$T], code: Code, by_ref: bool = false, mutable: bool = false) #for {
+//     mut it_index := 0
+//     mut raw_index := 0
+//     { #label block
+//         while raw_index < self.gap0, raw_index += 1 {
+//             defer it_index += 1
+//             if const by_ref {
+//                 it : &mut T = self.elements[raw_index]
+//             } else {
+//                 it : T = *self.elements[raw_index]
+//             }
+//             @insert(code, link=[raw_index], _break = break block, _continue = continue)
+//         }
+//         raw_index = self.gap1
+//         while raw_index < self.elements.length, raw_index += 1 {
+//             defer it_index += 1
+//             if const by_ref {
+//                 it : &mut T = self.elements[raw_index]
+//             } else {
+//                 it : T = *self.elements[raw_index]
+//             }
+//             @insert(code, link=[raw_index], _break = break block, _continue = continue)
+//         }
+//     }
+// }
